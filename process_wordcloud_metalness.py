@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import json
-import tqdm
 import os
-from langdetect import detect, DetectorFactory
+from langdetect import detect
 from langdetect import LangDetectException
 from wordcloud import WordCloud
 from analyzer import LANGUAGE_MAP
 import argparse
-
+import numpy as np
+from tqdm import tqdm
 import nltk
 
 nltk.download('punkt', quiet=True)
@@ -18,12 +18,13 @@ except Exception:
     pass
 
 from nltk.tokenize import RegexpTokenizer
-from nltk import FreqDist, word_tokenize
+from nltk import FreqDist
 import string
 import pandas as pd
 import matplotlib.pyplot as plt
 
 csv_cache_path = "cache/lyrics_data.csv"
+non_metal_dataset = pd.read_csv("cache/non_metal_lyrics.csv")
 
 
 def load_music_data_with_lyrics(filepath='data/progress2.json'):
@@ -47,7 +48,6 @@ def load_music_data_with_lyrics(filepath='data/progress2.json'):
         for album_info in artist_info.get('albums', {}).values()
     )
 
-    from tqdm import tqdm
     with tqdm(total=total_songs, desc='Loading songs', unit='song') as pbar:
         for artist_name, artist_info in data.get('dataset', {}).items():
             for album_name, album_info in artist_info.get('albums', {}).items():
@@ -114,6 +114,20 @@ def drop_songs_that_are_not_english(dataframe):
     final_count = len(dataframe)
     print(f"Dropped {initial_count - final_count} songs that are not in English.")
     return dataframe
+
+
+def process_metal_songs(dataframe):
+    df = dataframe.copy()
+    df = drop_songs_with_no_lyrics(df)
+    df = drop_songs_that_are_not_english(df)
+    return df
+
+def process_non_metal_songs(dataframe):
+    df = dataframe.copy()
+    df_english = df[df['language'] == 'en']
+    print(f"Non-metal songs before filtering: {len(df)}, after filtering for English: {len(df_english)}")
+    return df_english
+
 
 
 def get_word_frequence_distribution(df, text_column='lyrics'):
@@ -185,6 +199,25 @@ def plot_word_cloud_Debauchery(dataframe):
     print(Debauchery_word_freq_dist.most_common(20))
     plt.savefig("output_pics/Debauchery_wordcloud.png", bbox_inches='tight')
 
+def compute_metalness(wfd_metal, wfd_non_metal):
+    no_metal_wfd = {k:v for k,v in wfd_non_metal.items() if v >= 5}
+    metal_wfd = {k:v for k,v in wfd_metal.items() if v >= 5}
+    metalness  = {}
+
+    for word in tqdm(metal_wfd.keys() & no_metal_wfd.keys(), desc="Computing metalness", unit="word"):
+        if len(word)>2:
+            metalness_coeff = np.log((metal_wfd[word])/(no_metal_wfd[word]))
+            metalness[word] = 1 / (1 + np.exp(-metalness_coeff))
+
+    metalness_df = pd.DataFrame({
+        'words': list(metalness.keys()),
+        'metalness': list(metalness.values())
+    })
+
+    return metalness_df
+
+
+
 if __name__ == "__main__":
     """
     Main execution flow:
@@ -195,26 +228,33 @@ if __name__ == "__main__":
     - Prints the top 20 most common words.
     """
     parser = argparse.ArgumentParser(description="Analyze lyrics data from a JSON file.")
-    parser.add_argument("-f", "--filepath", default="data/progress2.json",
+    parser.add_argument("-f", "--filepath",default = None,
                         help="Path to json file (ex: `data/progress2.json`).")
     parser.add_argument("-o", "--output", default=None,
                         help="Path to output image. If not provided, image won't be saved.")
     args = parser.parse_args()
 
-    if os.path.exists(csv_cache_path):
-        print(f"Loading cached data from {csv_cache_path}...")
+    if os.path.exists(csv_cache_path) and args.filepath is None:
+        print(f"[INFO] Loading cached data from '{csv_cache_path}'...")
         df_songs = pd.read_csv(csv_cache_path)
     else:
-        print("CSV cache not found. Loading from JSON and creating cache...")
+        print("[INFO] Cache not found or custom file provided. Loading from JSON...")
         df_songs = load_music_data_with_lyrics(args.filepath)
-        os.makedirs("cache", exist_ok=True)
         df_songs.to_csv(csv_cache_path, index=False)
-        print(f"Data cached to {csv_cache_path}")
+        print(f"[INFO] Data cached to '{csv_cache_path}'")
 
-    df_songs = drop_songs_with_no_lyrics(df_songs)
-    df_songs_english = drop_songs_that_are_not_english(df_songs)
-    metal_word_freq_dist = get_word_frequence_distribution(df_songs, text_column='lyrics')
+    df_metal_songs = process_metal_songs(df_songs)
+    df_non_metal_songs = process_non_metal_songs(non_metal_dataset)
+    metal_word_freq_dist = get_word_frequence_distribution(df_metal_songs, text_column='lyrics')
+    non_metal_word_freq_dist = get_word_frequence_distribution(df_non_metal_songs, text_column='Lyric')
+    words_metalness_df = compute_metalness(metal_word_freq_dist, non_metal_word_freq_dist).sort_values(by='metalness', ascending=False).reset_index().drop(columns='index')
+    words_metalness_df.to_csv("output_data/words_metalness.csv")
+    words_metalness_top100 = words_metalness_df.head(100)
+    words_metalness_bot100 = words_metalness_df.tail(100)
+    words_metalness_top100.to_csv("output_data/words_metalness_top100.csv")
+    words_metalness_bot100.to_csv("output_data/words_metalness_bot100.csv")
     plot_word_cloud(metal_word_freq_dist, args.output)
-    plot_word_cloud_Debauchery(df_songs_english)
-    print(metal_word_freq_dist.most_common(20))
+    plot_word_cloud(non_metal_word_freq_dist, "output_pics/non_metal_wordcloud.png")
+    plot_word_cloud_Debauchery(df_metal_songs)
+
 

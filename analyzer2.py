@@ -12,9 +12,9 @@ import string
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from readability import Readability
+from readability import ColemanLiauIndex
 
-DEFAULT_JSON = "data/progress1.json"
+DEFAULT_JSON = "data/dataset.json"
 SWEAR_PATH = "resources/swear_words_eng.txt"
 TOP_BANDS = 1000
 STUPID_CL_THRESHOLD = 3
@@ -75,11 +75,11 @@ def swear_ratio(text, swear_words):
         total += len(list(re.finditer(rf"\b{re.escape(w)}\b", t)))
     return total / len(toks)
 
-# Calcule l’indice Coleman–Liau (entier ≥ 1)
+# Calcule l'indice Coleman–Liau (entier ≥ 1)
 def readability_cl(text):
     t = (text or "").replace("\\n", " ")
     try:
-        return max(1, int(Readability(t).coleman_liau().grade_level))
+        return max(1, int(ColemanLiauIndex(t).grade_level))
     except Exception:
         return 1
 

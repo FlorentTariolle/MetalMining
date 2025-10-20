@@ -2,8 +2,6 @@
 
 import json
 import os
-from langdetect import detect
-from langdetect import LangDetectException
 from wordcloud import WordCloud
 from analyzer import LANGUAGE_MAP
 import argparse
@@ -24,12 +22,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 csv_cache_path = "cache/lyrics_data.csv"
-non_metal_dataset = pd.read_csv("cache/non_metal_lyrics.csv")
+
+# Load non-metal dataset if it exists, otherwise create empty DataFrame
+try:
+    non_metal_dataset = pd.read_csv("cache/non_metal_lyrics.csv")
+except FileNotFoundError:
+    print("Warning: Non-metal dataset not found. Creating empty dataset.")
+    non_metal_dataset = pd.DataFrame(columns=['Lyric', 'language'])
 
 
-def load_music_data_with_lyrics(filepath='data/progress2.json'):
+def load_music_data_with_lyrics(filepath='data/dataset.json'):
     """
-    Load and process music data from a JSON file, including lyrics and language detection.
+    Load and process music data from a JSON file, including lyrics and pre-calculated language.
 
     Args:
         filepath (str): Path to the JSON data file.
@@ -55,14 +59,10 @@ def load_music_data_with_lyrics(filepath='data/progress2.json'):
                 for song in album_info.get('songs', []):
                     lyrics = song.get('lyrics', '').strip()
                     has_lyrics = bool(lyrics) and len(lyrics) >= 5
-                    if has_lyrics:
-                        try:
-                            language = detect(lyrics)
-                        except LangDetectException:
-                            language = 'None'
-                    else:
-                        language = 'None'
-                    language = LANGUAGE_MAP.get(language, language) if language != 'None' else 'None'
+                    # Language is now pre-calculated in the dataset
+                    language = song.get('language', 'unknown')
+                    # Convert language code to readable name if needed
+                    language = LANGUAGE_MAP.get(language, language) if language != 'unknown' else 'Unknown'
                     songs_data.append({
                         'artist': artist_name,
                         'album': album_name,
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser(description="Analyze lyrics data from a JSON file.")
     parser.add_argument("-f", "--filepath",default = None,
-                        help="Path to json file (ex: `data/progress2.json`).")
+                        help="Path to json file (ex: `data/dataset.json`).")
     parser.add_argument("-o", "--output", default=None,
                         help="Path to output image. If not provided, image won't be saved.")
     args = parser.parse_args()

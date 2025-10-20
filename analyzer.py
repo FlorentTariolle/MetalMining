@@ -7,11 +7,6 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from langdetect import detect, DetectorFactory
-from langdetect.lang_detect_exception import LangDetectException
-
-# Ensure consistent language detection results
-DetectorFactory.seed = 0
 
 # Language code to name mapping
 LANGUAGE_MAP = {
@@ -41,7 +36,7 @@ LANGUAGE_MAP = {
     'hr': 'Croatian'
 }
 
-def load_music_data(filepath='data/progress1.json'):
+def load_music_data(filepath='data/dataset.json'):
     """Load and process music data from JSON file"""
     
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -55,14 +50,10 @@ def load_music_data(filepath='data/progress1.json'):
             for song in album_info['songs']:
                 lyrics = song.get('lyrics', '').strip()
                 has_lyrics = bool(lyrics) and len(lyrics) >= 5
-                if has_lyrics:
-                    try:
-                        language = detect(lyrics)
-                    except LangDetectException:
-                        language = 'None'
-                else:
-                    language = 'None'
-                language = LANGUAGE_MAP.get(language, language) if language != 'None' else 'None'
+                # Language is now pre-calculated in the dataset
+                language = song.get('language', 'unknown')
+                # Convert language code to readable name if needed
+                language = LANGUAGE_MAP.get(language, language) if language != 'unknown' else 'Unknown'
                 songs_data.append({
                     'artist': artist_name,
                     'album': album_name,

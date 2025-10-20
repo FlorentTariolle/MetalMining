@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+Script to analyze the lyrics distribution of the metal music dataset, following the guidance of the first article of the Medium.
+"""
 
 import json
 import pandas as pd

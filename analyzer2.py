@@ -92,9 +92,26 @@ def swear_ratio(text: str, swear_words: List[str]) -> float:
 
 def readability_cl(text: str) -> int:
     """Calculate Coleman–Liau index (integer ≥ 1)."""
-    t = (text or "").replace("\\n", " ")
+    if not text or not text.strip():
+        return 1
+    
+    # Better text cleaning
+    t = text.replace("\\n", " ").replace("\n", " ")
+    # Normalize multiple spaces to single space
+    t = " ".join(t.split())
+    
     try:
-        return max(1, int(ColemanLiauIndex(t).grade_level))
+        # ColemanLiauIndex requires 3 arguments: letters, words, sentences
+        letters = sum(1 for c in t if c.isalpha())
+        words = len(t.split())
+        sentences = len([s for s in t.split('.') if s.strip()])
+        
+        if words == 0 or sentences == 0:
+            return 1
+            
+        # ColemanLiauIndex returns a float directly, not an object
+        result = ColemanLiauIndex(letters, words, sentences)
+        return max(1, int(result))
     except Exception:
         return 1
 
@@ -169,11 +186,16 @@ def scatter_plot_show(df: pd.DataFrame, x: str, y: str, xlabel: str, ylabel: str
     plt.tight_layout()
     plt.show()
 
-def run(json_path: str, swear_path: str, top_bands: int, seed: int) -> None:
+def run(json_path: str, swear_path: str, top_bands: int, seed: int, sample_size: int = None) -> None:
     """Main analysis function with improved logic and output."""
     # 1) Load data with lyrics and filter for English metal songs
     df_raw = load_music_data_with_lyrics(json_path)
     df = process_metal_songs(df_raw)
+
+    # 1.5) Sample songs if sample_size is specified
+    if sample_size is not None and len(df) > sample_size:
+        print(f"Sampling {sample_size} songs from {len(df)} total songs")
+        df = df.sample(n=sample_size, random_state=seed).reset_index(drop=True)
 
     # 2) Keep only top bands by song count
     df = keep_top_bands(df, top_bands)
@@ -246,8 +268,9 @@ def main():
     p.add_argument("--swears", default=SWEAR_PATH)
     p.add_argument("--topbands", type=int, default=TOP_BANDS)
     p.add_argument("--seed", type=int, default=50)
+    p.add_argument("--sample", type=int, default=100, help="Number of songs to sample for analysis")
     args = p.parse_args()
-    run(args.json, args.swears, args.topbands, args.seed)
+    run(args.json, args.swears, args.topbands, args.seed, args.sample)
 
 if __name__ == "__main__":
     main()

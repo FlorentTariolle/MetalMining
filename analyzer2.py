@@ -268,7 +268,7 @@ def main():
     p.add_argument("--swears", default=SWEAR_PATH)
     p.add_argument("--topbands", type=int, default=TOP_BANDS)
     p.add_argument("--seed", type=int, default=50)
-    p.add_argument("--sample", type=int, default=100, help="Number of songs to sample for analysis")
+    p.add_argument("--sample", type=int, default=None, help="Number of songs to sample for analysis")
     args = p.parse_args()
     run(args.json, args.swears, args.topbands, args.seed, args.sample)
 

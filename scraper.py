@@ -3,7 +3,7 @@
 """
 Comprehensive script using metalparser to fetch and save the complete dataset from DarkLyrics.
 Downloads all artists, their albums, and all songs in each album.
-Saves to data/complete_dataset.json
+Saves to data/progress{quarter}.json
 
 Supports multi-user scraping with different quarters of the artist list.
 Users: Florent (quarter 1), Nizar (quarter 2), Mathis (quarter 3), Rayen (quarter 4)
@@ -298,7 +298,7 @@ def main():
 	final_dataset = fetch_complete_dataset(api, artists, dataset, start_position, progress_file_name, user_boundary)
 
 	# Save user-specific dataset
-	user_dataset_path = os.path.join(out_dir, f"complete_dataset_{args.user.lower()}.json")
+	user_dataset_path = os.path.join(out_dir, f"progress{quarter}.json")
 	print(f"Saving {args.user}'s dataset...")
 	with open(user_dataset_path, "w", encoding="utf-8") as f:
 		json.dump(final_dataset, f, ensure_ascii=False, indent=2)

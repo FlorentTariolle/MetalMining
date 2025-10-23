@@ -38,8 +38,20 @@ def load_base(json_path):
 def attach_lyrics(df, json_path):
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+    
+    # Handle nested dataset structure
+    if 'dataset' in data and 'dataset' in data['dataset']:
+        # Double nested: {"dataset": {"dataset": {...}}}
+        dataset = data['dataset']['dataset']
+    elif 'dataset' in data:
+        # Single nested: {"dataset": {...}}
+        dataset = data['dataset']
+    else:
+        # Direct structure: {...}
+        dataset = data
+    
     rows = []
-    for artist, a in data["dataset"].items():
+    for artist, a in dataset.items():
         for album, al in a["albums"].items():
             for s in al.get("songs", []):
                 rows.append({

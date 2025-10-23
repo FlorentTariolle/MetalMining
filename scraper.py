@@ -297,11 +297,15 @@ def main():
 	print(f"Starting dataset fetch for {args.user} (Quarter {quarter})...")
 	final_dataset = fetch_complete_dataset(api, artists, dataset, start_position, progress_file_name, user_boundary)
 
-	# Save user-specific dataset
+	# Save user-specific dataset in the format expected by merge script
 	user_dataset_path = os.path.join(out_dir, f"progress{quarter}.json")
 	print(f"Saving {args.user}'s dataset...")
+	
+	# Wrap the dataset in the format expected by merge_progress_files.py
+	dataset_wrapper = {"dataset": final_dataset}
+	
 	with open(user_dataset_path, "w", encoding="utf-8") as f:
-		json.dump(final_dataset, f, ensure_ascii=False, indent=2)
+		json.dump(dataset_wrapper, f, ensure_ascii=False, indent=2)
 	
 	# Clean up progress file if it exists
 	if os.path.exists(progress_path):

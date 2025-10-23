@@ -78,7 +78,7 @@ def merge_progress_files():
         print("Warning: artists_list.json not found, progress bar will show file count instead")
     
     # Initialize merged dataset
-    merged_dataset = {"dataset": {}}
+    merged_dataset = {}
     
     # Process each progress file
     processed_artists = 0
@@ -110,7 +110,7 @@ def merge_progress_files():
                         album_data['songs'] = add_language_to_songs(album_data['songs'])
             
             # Add to merged dataset
-            merged_dataset['dataset'][artist_name] = artist_data
+            merged_dataset[artist_name] = artist_data
             processed_artists += 1
     
     # Save the merged dataset
@@ -118,18 +118,20 @@ def merge_progress_files():
     print(f"\nSaving merged dataset to {output_path}...")
     
     try:
+        # Wrap the merged dataset in the expected structure
+        final_dataset = {"dataset": merged_dataset}
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(merged_dataset, f, indent=2, ensure_ascii=False)
+            json.dump(final_dataset, f, indent=2, ensure_ascii=False)
         
         print(f"Successfully created {output_path}")
         print(f"Total artists processed: {processed_artists}")
-        print(f"Total artists in merged dataset: {len(merged_dataset['dataset'])}")
+        print(f"Total artists in merged dataset: {len(merged_dataset)}")
         
         # Show some statistics about language detection
         language_stats = {}
         total_songs = 0
         
-        for artist_name, artist_data in merged_dataset['dataset'].items():
+        for artist_name, artist_data in merged_dataset.items():
             if 'albums' in artist_data:
                 for album_name, album_data in artist_data['albums'].items():
                     if 'songs' in album_data:

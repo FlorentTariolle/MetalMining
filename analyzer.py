@@ -42,9 +42,20 @@ def load_music_data(filepath='data/dataset.json'):
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
+    # Handle nested dataset structure
+    if 'dataset' in data and 'dataset' in data['dataset']:
+        # Double nested: {"dataset": {"dataset": {...}}}
+        dataset = data['dataset']['dataset']
+    elif 'dataset' in data:
+        # Single nested: {"dataset": {...}}
+        dataset = data['dataset']
+    else:
+        # Direct structure: {...}
+        dataset = data
+    
     songs_data = []
     
-    for artist_name, artist_info in data['dataset'].items():
+    for artist_name, artist_info in dataset.items():
         for album_name, album_info in artist_info['albums'].items():
             release_year = album_info.get('release_year', 'Unknown')
             for song in album_info['songs']:
@@ -68,7 +79,7 @@ def load_music_data(filepath='data/dataset.json'):
     
     album_types = []
     
-    for artist_name, artist_info in data['dataset'].items():
+    for artist_name, artist_info in dataset.items():
         for album_name, album_info in artist_info['albums'].items():
             album_type = album_info.get('album_type', 'Unknown')
             if album_type.lower() == 'demo':

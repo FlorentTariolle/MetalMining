@@ -1,3 +1,4 @@
+scikit-learn
 # Core dependencies for PAO Metal Mining project
 
 # Data analysis and visualization

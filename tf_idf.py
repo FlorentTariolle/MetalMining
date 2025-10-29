@@ -59,7 +59,7 @@ def process_idf_scores(metal_df, non_metal_df, output = None):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-f", "--filepath", default='None', help = "path to dataset in json format")
+    parser.add_argument("-f", "--filepath", default=None, help = "path to dataset in json format")
     parser.add_argument('-o', "--output", default=None, help="path to output csv metalness ranking")
 
     args = parser.parse_args()

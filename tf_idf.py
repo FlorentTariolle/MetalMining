@@ -4,8 +4,10 @@ from process_wordcloud_metalness import load_music_data_with_lyrics,process_meta
 import pandas as pd
 from argparse import ArgumentParser
 import os
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 WORD_COLUMN_METAL = "lyrics"
 WORD_COLUMN_NON_METAL = "Lyric"
 csv_cache_path = "cache/lyrics_data.csv"
@@ -18,19 +20,40 @@ except FileNotFoundError:
     non_metal_dataset = pd.DataFrame(columns=['Lyric', 'language'])
 
 def process_idf_scores(metal_df, non_metal_df, output = None):
-    metal_corpus = ' '.join(metal_df[WORD_COLUMN_METAL].astype(str).tolist())
-    non_metal_corpus = ' '.join(non_metal_df[WORD_COLUMN_NON_METAL].astype(str).tolist())
-    documents = [metal_corpus, non_metal_corpus]
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(documents)
-    feature_names = vectorizer.get_feature_names_out()
-    print(feature_names)
-    metal_idf_scores = X[1].toarray().flatten()
-    metalness_df  = pd.DataFrame({"Word" : feature_names,
-                                  "Metalness" :  metal_idf_scores})
+    # Treat each song's lyrics as a document
+    metal_documents = metal_df[WORD_COLUMN_METAL].astype(str).tolist()
+    non_metal_documents = non_metal_df[WORD_COLUMN_NON_METAL].astype(str).tolist()
+
+    # Calculate TF for the metal dataset
+    tf_vectorizer = CountVectorizer(stop_words='english')
+    tf_metal_matrix = tf_vectorizer.fit_transform(metal_documents)
+    tf_metal_words = tf_vectorizer.get_feature_names_out()
+    total_tf_metal = np.array(tf_metal_matrix.sum(axis=0)).ravel()
+    tf_df = pd.DataFrame({'Word': tf_metal_words, 'TF_metal': total_tf_metal})
+
+    # Calculate IDF for the non-metal dataset
+    idf_vectorizer = TfidfVectorizer(stop_words='english')
+    idf_vectorizer.fit(non_metal_documents)
+    idf_non_metal_words = idf_vectorizer.get_feature_names_out()
+    idf_scores = idf_vectorizer.idf_
+    idf_df = pd.DataFrame({'Word': idf_non_metal_words, 'IDF_non_metal': idf_scores})
+
+    # Merge TF and IDF dataframes
+    metalness_df = pd.merge(tf_df, idf_df, on='Word', how='left')
+
+    max_idf = np.log(len(non_metal_documents) + 1) + 1
+    metalness_df['IDF_non_metal'].fillna(max_idf, inplace=True)
+
+    # Calculate the custom "Metalness" score
+    scaler = MinMaxScaler(feature_range=(0, 1), clip=True)
+    metalness_df['Metalness'] = metalness_df['TF_metal'] * metalness_df['IDF_non_metal']
+    metalness_df["Metalness"] = scaler.fit_transform(metalness_df[["Metalness"]])
+    # Sort by the new metalness score
     metalness_df = metalness_df.sort_values(by='Metalness', ascending=False)
-    print("--- Metalness score by word using (TF-IDF) ---")
+
+    print("--- Metalness score (TF_metal * IDF_non_metal) ---")
     print(metalness_df.head(20))
+
     if output:
         metalness_df.to_csv(output, index=False)
 

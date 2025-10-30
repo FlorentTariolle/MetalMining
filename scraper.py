@@ -306,10 +306,7 @@ def main():
 	
 	with open(user_dataset_path, "w", encoding="utf-8") as f:
 		json.dump(dataset_wrapper, f, ensure_ascii=False, indent=2)
-	
-	# Clean up progress file if it exists
-	if os.path.exists(progress_path):
-		os.remove(progress_path)
+
 	
 	print(f"{args.user}'s dataset saved to: {user_dataset_path}")
 	print(f"Total artists processed by {args.user}: {len(final_dataset)}")

@@ -244,6 +244,10 @@ if __name__ == "__main__":
         df_songs.to_csv(csv_cache_path, index=False)
         print(f"[INFO] Data cached to '{csv_cache_path}'")
 
+    # Create output directories if they don't exist
+    os.makedirs("output_data", exist_ok=True)
+    os.makedirs("output_pics", exist_ok=True)
+    
     df_metal_songs = process_metal_songs(df_songs)
     df_non_metal_songs = process_non_metal_songs(non_metal_dataset)
     metal_word_freq_dist = get_word_frequence_distribution(df_metal_songs, text_column='lyrics')

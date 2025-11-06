@@ -1,6 +1,6 @@
 __pycache__/*
 .venv/
 .idea/
-cache/
+cache/lyrics_data.csv
 output_data/
 output_pics/

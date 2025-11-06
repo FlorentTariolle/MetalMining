@@ -6,7 +6,7 @@ with language detection added to each song's lyrics.
 
 import json
 from pathlib import Path
-from langdetect import detect, LangDetectException
+from langdetect import detect, detect_langs, LangDetectException
 from tqdm import tqdm
 import sys
 
@@ -22,19 +22,51 @@ def load_json_file(file_path):
 def detect_language(text):
     """
     Detect the language of the given text using langdetect.
-    Returns 'unknown' if detection fails.
+    Returns 'unknown' if detection fails or text is too short/unreliable.
+    
+    Improvements:
+    - Requires minimum 50 characters for reliable detection
+    - Uses confidence scores with minimum threshold of 0.7
+    - Handles common instrumental patterns
     """
     if not text or not text.strip():
         return 'unknown'
     
+    # Clean the text a bit for better detection
+    cleaned_text = text.strip()
+    
+    # Check for common instrumental patterns (these are too short/unreliable)
+    instrumental_patterns = [
+        '[instrumental]',
+        '[Instrumental]',
+        '[INSTRUMENTAL]',
+        'instrumental',
+        'Instrumental'
+    ]
+    if cleaned_text.lower() in [p.lower() for p in instrumental_patterns]:
+        return 'unknown'
+    
+    # Require minimum length for reliable detection (increased from 10 to 50)
+    # Very short texts can give false positives, especially for Romanian 🤣
+    if len(cleaned_text) < 50:
+        return 'unknown'
+    
     try:
-        # Clean the text a bit for better detection
-        cleaned_text = text.strip()
-        if len(cleaned_text) < 10:  # Too short for reliable detection
+        # Use detect_langs to get confidence scores
+        detected_langs = detect_langs(cleaned_text)
+        
+        if not detected_langs:
             return 'unknown'
         
-        detected_lang = detect(cleaned_text)
-        return detected_lang
+        # Get the top detection with its confidence score
+        top_lang = detected_langs[0]
+        
+        # Require minimum confidence of 0.7
+        if top_lang.prob < 0.7:
+            return 'unknown'
+        
+        return top_lang.lang
+        
     except LangDetectException:
         return 'unknown'
     except Exception:

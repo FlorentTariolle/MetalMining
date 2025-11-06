@@ -69,7 +69,8 @@ if __name__ == "__main__":
         df_songs = pd.read_csv(csv_cache_path)
     else:
         print("[INFO] Cache not found or custom file provided. Loading from JSON...")
-        df_songs = load_music_data_with_lyrics(args.filepath)
+        filepath = args.filepath if args.filepath is not None else 'data/dataset.json'
+        df_songs = load_music_data_with_lyrics(filepath)
         df_songs.to_csv(csv_cache_path, index=False)
         print(f"[INFO] Data cached to '{csv_cache_path}'")
 

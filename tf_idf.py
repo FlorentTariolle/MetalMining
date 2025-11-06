@@ -4,7 +4,9 @@ from process_wordcloud_metalness import load_music_data_with_lyrics,process_meta
 import pandas as pd
 from argparse import ArgumentParser
 import os
+import nltk
 import numpy as np
+from nltk.corpus import stopwords
 from sklearn.preprocessing import MinMaxScaler
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
@@ -19,13 +21,20 @@ except FileNotFoundError:
     print("Warning: Non-metal dataset not found. Creating empty dataset.")
     non_metal_dataset = pd.DataFrame(columns=['Lyric', 'language'])
 
+try:
+    base_stopwords = set(stopwords.words('english'))
+except LookupError:
+    nltk.download('stopwords')
+    base_stopwords = set(stopwords.words('english'))
+
 def process_idf_scores(metal_df, non_metal_df, output = None):
     # Treat each song's lyrics as a document
     metal_documents = metal_df[WORD_COLUMN_METAL].astype(str).tolist()
     non_metal_documents = non_metal_df[WORD_COLUMN_NON_METAL].astype(str).tolist()
-
+    extra_tokens_to_remove = {'ve', 'dont', 'll', 'nt'}
+    custom_stopwords = base_stopwords.union(extra_tokens_to_remove)
     # Calculate TF for the metal dataset
-    tf_vectorizer = CountVectorizer(stop_words='english')
+    tf_vectorizer = CountVectorizer(stop_words=list(custom_stopwords))
     tf_metal_matrix = tf_vectorizer.fit_transform(metal_documents)
     tf_metal_words = tf_vectorizer.get_feature_names_out()
     total_tf_metal = np.array(tf_metal_matrix.sum(axis=0)).ravel()

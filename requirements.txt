@@ -1,4 +1,5 @@
 scikit-learn
+umap-learn>=0.5.9
 # Core dependencies for PAO Metal Mining project
 
 # Data analysis and visualization

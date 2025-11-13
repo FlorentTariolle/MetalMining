@@ -64,6 +64,9 @@ def process_idf_scores(metal_df, non_metal_df, output = None):
     print(metalness_df.head(20))
 
     if output:
+        if os.path.exists(output):
+                os.remove(output)
+        os.makedirs("output_data", exist_ok=True)
         metalness_df.to_csv(output, index=False)
 
 if __name__ == "__main__":
@@ -75,7 +78,7 @@ if __name__ == "__main__":
 
     if os.path.exists(csv_cache_path) and args.filepath is None:
         print(f"[INFO] Loading cached data from '{csv_cache_path}'...")
-        df_songs = pd.read_csv(csv_cache_path)
+        df_songs = pd.read_csv(csv_cache_path, dtype="str")
     else:
         print("[INFO] Cache not found or custom file provided. Loading from JSON...")
         filepath = args.filepath if args.filepath is not None else 'data/dataset.json'

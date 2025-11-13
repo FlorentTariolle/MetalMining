@@ -56,14 +56,13 @@ def umap_plot(dataframe):
     dataframe = dataframe.sample(n=100, random_state=42)
     X = dataframe[["avg_metalness"]].values
     labels = optics_clustering(X)
-    print(np.unique(labels))
-    reducer = umap.UMAP(n_neighbors=5, min_dist=0.3, random_state=42)
+    reducer = umap.UMAP(n_neighbors=5, min_dist=0.5, random_state=42)
     X_umap = reducer.fit_transform(X)
 
     dataframe['umap_1'] = X_umap[:, 0]
     dataframe['umap_2'] = X_umap[:, 1]
 
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(16, 10))
     plt.scatter(dataframe['umap_1'], dataframe['umap_2'],
                 c=labels, cmap='rainbow', s=100)
 
@@ -73,7 +72,7 @@ def umap_plot(dataframe):
         plt.text(dataframe['umap_1'].iloc[i] + 0.1,
                  dataframe['umap_2'].iloc[i] + 0.3,
                  clean_album,
-                 fontsize=3)
+                 fontsize=8)
 
     plt.title("Visualisation UMAP des albums selon la metalness")
     output_path = "output_pics/umap_metalness.png"

@@ -13,3 +13,13 @@ wordcloud>=1.9.0
 
 # Web scraping
 metalparser
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+selenium>=4.15.0
+webdriver-manager>=4.0.0
+
+# Dependency version constraints to avoid conflicts with botocore and streamlit
+urllib3>=1.25.4,<2.1
+packaging>=16.8,<24
+pillow>=7.1.0,<11
+protobuf>=3.20,<5

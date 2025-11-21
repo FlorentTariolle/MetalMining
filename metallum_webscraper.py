@@ -52,94 +52,67 @@ def format_band_url(band_name: str) -> str:
     return f"{BASE_URL}{encoded}/"
 
 
-def scrape_band_genre(band_name: str, driver: webdriver.Chrome, retries: int = 2) -> str:
+def scrape_band_genre(band_name: str, driver: webdriver.Chrome) -> str:
     """
     Scrape the genre for a band from Metal Archives using Selenium.
     Returns the genre string, or None if not found.
     """
     url = format_band_url(band_name)
     
-    for attempt in range(retries):
+    try:
+        driver.get(url)
+        
+        # Wait for the page to load and check for the band_stats element (2 second timeout)
         try:
-            driver.get(url)
+            wait = WebDriverWait(driver, 2)
+            band_stats = wait.until(EC.presence_of_element_located((By.ID, "band_stats")))
+        except TimeoutException:
+            # If not found within 2 seconds, move on to next band
+            return None
+        
+        # Find the genre by looking for dt with "Genre:" and getting the next dd
+        # Based on the HTML structure: <dl class="float_right"><dt>Genre:</dt><dd>Heavy Metal</dd>
+        try:
+            # Find the dt element with "Genre:" text
+            genre_dt = driver.find_element(By.XPATH, "//div[@id='band_stats']//dl[@class='float_right']//dt[text()='Genre:']")
             
-            # Wait for the page to load and check for the band_stats element
-            try:
-                wait = WebDriverWait(driver, 15)
-                band_stats = wait.until(EC.presence_of_element_located((By.ID, "band_stats")))
-                # Wait a bit more for dynamic content to load
-                time.sleep(0.5)
-            except TimeoutException:
-                # Page might not have loaded - check if it's actually a 403 error
-                current_url = driver.current_url
-                page_title = driver.title.lower()
-                
-                # Only check for 403 if we can't find band_stats AND the URL/title suggests an error
-                if ("403" in current_url or "forbidden" in page_title or 
-                    "error" in page_title or "access denied" in page_title):
-                    print(f"403 Forbidden/Blocked")
-                    return None
-                
-                # If band_stats not found but no clear error, might just be slow loading
-                if attempt < retries - 1:
-                    time.sleep(2)
-                    continue
-                return None
+            # Get the immediately following dd sibling
+            genre_dd = genre_dt.find_element(By.XPATH, "./following-sibling::dd[1]")
+            genre = genre_dd.text.strip()
             
-            # Find the genre by looking for dt with "Genre:" and getting the next dd
-            # Based on the HTML structure: <dl class="float_right"><dt>Genre:</dt><dd>Heavy Metal</dd>
+            if genre:
+                return genre
+            
+        except NoSuchElementException:
+            # Try alternative method: find all dts and dds, match by position
             try:
-                # Wait for the genre dt element to be present
-                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#band_stats dl.float_right dt")))
+                dts = driver.find_elements(By.CSS_SELECTOR, "#band_stats dl.float_right dt")
+                dds = driver.find_elements(By.CSS_SELECTOR, "#band_stats dl.float_right dd")
                 
-                # Find the dt element with "Genre:" text
-                genre_dt = driver.find_element(By.XPATH, "//div[@id='band_stats']//dl[@class='float_right']//dt[text()='Genre:']")
-                
-                # Get the immediately following dd sibling
-                genre_dd = genre_dt.find_element(By.XPATH, "./following-sibling::dd[1]")
+                for i, dt in enumerate(dts):
+                    if dt.text.strip() == "Genre:":
+                        if i < len(dds):
+                            genre = dds[i].text.strip()
+                            if genre:
+                                return genre
+                        break
+            except Exception:
+                pass
+        except Exception:
+            # Last resort: try to get first dd in float_right (assuming Genre is first)
+            try:
+                genre_dd = driver.find_element(By.CSS_SELECTOR, "#band_stats dl.float_right dd:first-of-type")
                 genre = genre_dd.text.strip()
-                
                 if genre:
                     return genre
-                
-            except NoSuchElementException:
-                # Try alternative method: find all dts and dds, match by position
-                try:
-                    dts = driver.find_elements(By.CSS_SELECTOR, "#band_stats dl.float_right dt")
-                    dds = driver.find_elements(By.CSS_SELECTOR, "#band_stats dl.float_right dd")
-                    
-                    for i, dt in enumerate(dts):
-                        if dt.text.strip() == "Genre:":
-                            if i < len(dds):
-                                genre = dds[i].text.strip()
-                                if genre:
-                                    return genre
-                            break
-                except Exception:
-                    pass
-            except Exception as e:
-                # Last resort: try to get first dd in float_right (assuming Genre is first)
-                try:
-                    genre_dd = driver.find_element(By.CSS_SELECTOR, "#band_stats dl.float_right dd:first-of-type")
-                    genre = genre_dd.text.strip()
-                    if genre:
-                        return genre
-                except Exception:
-                    pass
-            
-            return None
-            
-        except Exception as e:
-            if attempt < retries - 1:
-                wait_time = (attempt + 1) * 2
-                print(f"(Error: {e}, retrying in {wait_time}s)...", end=' ', flush=True)
-                time.sleep(wait_time)
-                continue
-            else:
-                print(f"Error fetching {band_name}: {e}")
-                return None
-    
-    return None
+            except Exception:
+                pass
+        
+        return None
+        
+    except Exception as e:
+        # If any error occurs, just return None and move on
+        return None
 
 
 def scrape_genres_for_bands(band_list: list, output_file: str = DEFAULT_OUTPUT, delay: float = DELAY, headless: bool = False) -> dict:

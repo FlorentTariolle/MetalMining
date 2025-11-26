@@ -13,6 +13,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.corpus import stopwords
 from sklearn.cluster import OPTICS
 
+from argparse import ArgumentParser
+
 from process_wordcloud_metalness import load_music_data_with_lyrics
 
 
@@ -64,7 +66,7 @@ def optics_clustering(X):
 
 def plot_clusters(dataframe, X, vectorizer):
 
-    reducer = umap.UMAP(n_neighbors=10, min_dist=0.3, metric='cosine', random_state=42)
+    reducer = umap.UMAP(n_neighbors=20, min_dist=0.1, metric='cosine', random_state=42)
     embedding = reducer.fit_transform(X)
 
     labels = optics_clustering(embedding)
@@ -73,12 +75,13 @@ def plot_clusters(dataframe, X, vectorizer):
     print("===== Thematical words of each clusters =====")
     feature_names = np.array(vectorizer.get_feature_names_out())
     for c in np.unique(labels):
-       if c == -1:  # bruit
-           continue
-       cluster_indices = np.where(labels == c)[0]
-       cluster_tfidf = X[cluster_indices].mean(axis=0).A1
-       top_words = feature_names[cluster_tfidf.argsort()[-10:][::-1]]
-       print(f"Cluster {c} : {', '.join(top_words)}")
+        cluster_indices = np.where(labels == c)[0]
+        cluster_tfidf = X[cluster_indices].mean(axis=0).A1
+        top_words = feature_names[cluster_tfidf.argsort()[-10:][::-1]]
+        if c == -1:  # bruit
+            print(f"Bruit : {', '.join(top_words)}")
+        else:
+            print(f"Cluster {c} : {', '.join(top_words)}")
     print("\n")
 
     plt.figure(figsize=(10, 6))
@@ -97,6 +100,8 @@ def plot_clusters(dataframe, X, vectorizer):
     plt.xlabel("UMAP 1")
     plt.ylabel("UMAP 2")
 
+    plt.legend(labels=labels, title="Clusters", bbox_to_anchor=(1.05, 1), loc='upper left')
+
     output_path = "output_pics/umap_metalness.png"
     if os.path.exists(output_path):
         os.remove(output_path)
@@ -104,11 +109,23 @@ def plot_clusters(dataframe, X, vectorizer):
     plt.savefig(output_path, bbox_inches='tight')
     plt.close()
 
+    # enrgistrement des noms d'albums par cluster dans un csv
+    df = dataframe.copy()
+    df["cluster"] = labels
+    cluster_rows = []
+    for c in sorted(df["cluster"].unique()):
+        albums = df[df["cluster"] == c]["album"].tolist()
+        album_list = "; ".join(albums)  # formatage
+        cluster_rows.append({"cluster": c, "albums": album_list})
+    out = pd.DataFrame(cluster_rows)
+    out.to_csv("output_pics/albums_clusters.csv", index=False)
+
 
 
 if __name__ == "__main__" :
-    top_50_artists = (metal_df["artist"].value_counts().head(50).index.tolist())
-    selected_artists = top_50_artists[:5]
+
+    top_100_artists = (metal_df["artist"].value_counts().head(100).index.tolist())
+    selected_artists = top_100_artists[:5]
     
     metal_df = metal_df[metal_df['artist'].isin(selected_artists)]
     album_lyrics = metal_df.groupby('album')['lyrics'].agg(lambda x : " ".join(x.astype(str))).reset_index()    

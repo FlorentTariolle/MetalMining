@@ -29,7 +29,7 @@ except FileNotFoundError:
     metal_df = load_music_data_with_lyrics("data/dataset.json")
 
 
-def calculate_album_metalness(lyrics_text, scores_dict):
+def calculate_average_metalness(lyrics_text, scores_dict):
 
     if not isinstance(lyrics_text, str):
         return 0.0
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     metalness_scores = pd.Series(metalness_df.Metalness.values, index=metalness_df.Word).to_dict()
     album_lyrics = metal_df.groupby('album')['lyrics'].agg(lambda x : " ".join(x.astype(str))).reset_index()
 
-    album_lyrics['avg_metalness'] = album_lyrics['lyrics'].apply(lambda x: calculate_album_metalness(x, metalness_scores))
+    album_lyrics['avg_metalness'] = album_lyrics['lyrics'].apply(lambda x: calculate_average_metalness(x, metalness_scores))
     album_lyrics = album_lyrics.sort_values(by='avg_metalness', ascending=False)
     print("--- Album Metalness Scores: ---")
     print(album_lyrics[['album', 'avg_metalness']].head())

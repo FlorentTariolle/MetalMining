@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     if os.path.exists(csv_cache_path) and args.filepath is None:
         print(f"[INFO] Loading cached data from '{csv_cache_path}'...")
-        df_songs = pd.read_csv(csv_cache_path, dtype="str")
+        df_songs = pd.read_csv(csv_cache_path)
     else:
         print("[INFO] Cache not found or custom file provided. Loading from JSON...")
         filepath = args.filepath if args.filepath is not None else 'data/dataset.json'

@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.rcParams['text.usetex'] = False
 import umap
 import re
-metalness_csv = "output_data/metalness.csv"
+from metalness_loader import load_metalness_df
 from process_wordcloud_metalness import load_music_data_with_lyrics
 import nltk
 from nltk.corpus import stopwords
@@ -84,7 +84,7 @@ def umap_plot(dataframe):
 
 if __name__ == "__main__":
     # Load metalness scores into a dictionary for efficient lookup
-    metalness_df = pd.read_csv(metalness_csv)
+    metalness_df = load_metalness_df()
     metalness_scores = pd.Series(metalness_df.Metalness.values, index=metalness_df.Word).to_dict()
     album_lyrics = metal_df.groupby('album')['lyrics'].agg(lambda x : " ".join(x.astype(str))).reset_index()
 

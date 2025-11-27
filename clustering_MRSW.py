@@ -3,6 +3,7 @@ import os
 import re
 from argparse import ArgumentParser
 import pandas as pd
+from metalness_loader import load_metalness_df
 from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 from albums_clustering import calculate_average_metalness
 import matplotlib.pyplot as plt
@@ -58,21 +59,19 @@ def calculate_text_metalness(lyrics_text, scores_dict):
     return sum(scores) / len(filtered_words)
 
 
-def perform_clustering_and_viz_MRSW(artist_df, output_dir):
+def cluster_artists(artist_df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
     """
-    Performs scaling, OPTICS clustering, and UMAP visualization.
+    Scale the provided features, run OPTICS, and compute UMAP coordinates.
     """
+    df = artist_df.copy()
     scaler = StandardScaler(with_std=True, with_mean=True)
-    features = ['metalness', 'readability', 'swear_word_ratio']
-    X_scaled = scaler.fit_transform(artist_df[features])
+    X_scaled = scaler.fit_transform(df[features])
 
     print("Running OPTICS clustering...")
     optics = OPTICS(min_samples=4, xi=0.05, min_cluster_size=0.05)
     labels = optics.fit_predict(X_scaled)
+    df["cluster"] = labels
 
-    artist_df['cluster'] = labels
-
-    # Print stats
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
     n_noise = list(labels).count(-1)
     print(f"OPTICS found {n_clusters} clusters and {n_noise} noise points.")
@@ -81,82 +80,125 @@ def perform_clustering_and_viz_MRSW(artist_df, output_dir):
     reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=42)
     embedding = reducer.fit_transform(X_scaled)
 
-    artist_df['umap_1'] = embedding[:, 0]
-    artist_df['umap_2'] = embedding[:, 1]
+    df["umap_1"] = embedding[:, 0]
+    df["umap_2"] = embedding[:, 1]
+    return df
 
+
+def plot_artist_clusters(
+    artist_df: pd.DataFrame,
+    output_dir: str,
+    filename: str,
+    title: str,
+    cluster_labels: dict[int, str] | None = None,
+) -> None:
+    """
+    Render the clustered artists using UMAP coordinates and optional annotations.
+    """
     plt.figure(figsize=(16, 12))
-    noise_data = artist_df[artist_df['cluster'] == -1]
-    plt.scatter(noise_data['umap_1'], noise_data['umap_2'],
-                c='lightgrey', s=50, label='Noise', alpha=0.5)
+    noise_data = artist_df[artist_df["cluster"] == -1]
+    plt.scatter(
+        noise_data["umap_1"],
+        noise_data["umap_2"],
+        c="lightgrey",
+        s=50,
+        label="Noise",
+        alpha=0.5,
+    )
 
-    clustered_data = artist_df[artist_df['cluster'] != -1]
-    scatter = plt.scatter(clustered_data['umap_1'], clustered_data['umap_2'],
-                          c=clustered_data['cluster'], cmap='rainbow', s=120, edgecolors='k')
+    clustered_data = artist_df[artist_df["cluster"] != -1]
+    scatter = plt.scatter(
+        clustered_data["umap_1"],
+        clustered_data["umap_2"],
+        c=clustered_data["cluster"],
+        cmap="rainbow",
+        s=120,
+        edgecolors="k",
+    )
 
     texts_to_annotate = artist_df if len(artist_df) < 150 else artist_df.sample(150, random_state=42)
-
     for artist_name, row in texts_to_annotate.iterrows():
-        clean_name = str(artist_name).replace('$', '\\$')
-        plt.text(row['umap_1'], row['umap_2'], clean_name, fontsize=8, alpha=0.8)
+        clean_name = str(artist_name).replace("$", "\\$")
+        plt.text(row["umap_1"], row["umap_2"], clean_name, fontsize=8, alpha=0.8)
 
-    plt.title("Artist Clustering (Metalness, Readability, Profanity)", fontsize=16)
+    if cluster_labels:
+        non_noise_labels = {
+            cid: label
+            for cid, label in cluster_labels.items()
+            if cid != -1 and label
+        }
+        for cluster_id, label in non_noise_labels.items():
+            cluster_points = artist_df[artist_df["cluster"] == cluster_id]
+            if cluster_points.empty:
+                continue
+            centroid = cluster_points[["umap_1", "umap_2"]].mean()
+            plt.text(
+                centroid["umap_1"],
+                centroid["umap_2"],
+                label,
+                fontsize=12,
+                fontweight="bold",
+                ha="center",
+                va="center",
+                bbox=dict(facecolor="white", alpha=0.7, edgecolor="none", pad=2),
+            )
+
+    plt.title(title, fontsize=16)
     plt.xlabel("UMAP Dimension 1")
     plt.ylabel("UMAP Dimension 2")
-    plt.colorbar(scatter, label='OPTICS Cluster ID')
+    plt.colorbar(scatter, label="OPTICS Cluster ID")
+
     os.makedirs(output_dir, exist_ok=True)
-    out_path = os.path.join(output_dir, "artist_clusters_optics.png")
+    out_path = os.path.join(output_dir, filename)
     if os.path.exists(out_path):
         os.remove(out_path)
-    plt.savefig(out_path, bbox_inches='tight', dpi=300)
+    plt.savefig(out_path, bbox_inches="tight", dpi=300)
     print(f"Plot saved to {out_path}")
     plt.close()
-    plt.close()
 
-def perform_clustering_and_viz_M(artist_df, output_dir):
-    """
-    Performs scaling, OPTICS clustering, and UMAP visualization.
-    """
-    scaler = StandardScaler(with_std=True, with_mean=True)
-    features = ['metalness']
-    X_scaled = scaler.fit_transform(artist_df[features])
 
-    print("Running OPTICS clustering...")
-    optics = OPTICS(min_samples=4, xi=0.05, min_cluster_size=0.05)
-    labels = optics.fit_predict(X_scaled)
+def perform_clustering_and_viz_MRSW(artist_df, output_dir, cluster_labels=None):
+    features = ["metalness", "readability", "swear_word_ratio"]
+    clustered_df = cluster_artists(artist_df, features)
+    plot_artist_clusters(
+        clustered_df,
+        output_dir,
+        "artist_clusters_optics.png",
+        "Artist Clustering (Metalness, Readability, Profanity)",
+        cluster_labels,
+    )
+    return clustered_df
 
-    artist_df['cluster'] = labels
-
-    # Print stats
-    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-    n_noise = list(labels).count(-1)
-    print(f"OPTICS found {n_clusters} clusters and {n_noise} noise points.")
-
-    print("Running UMAP projection...")
-    reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=42)
-    embedding = reducer.fit_transform(X_scaled)
-
-    artist_df['umap_1'] = embedding[:, 0]
-    artist_df['umap_2'] = embedding[:, 1]
-
-    plt.figure(figsize=(16, 12))
-    noise_data = artist_df[artist_df['cluster'] == -1]
-    plt.scatter(noise_data['umap_1'], noise_data['umap_2'],
-                c='lightgrey', s=50, label='Noise', alpha=0.5)
-
-    clustered_data = artist_df[artist_df['cluster'] != -1]
-    scatter = plt.scatter(clustered_data['umap_1'], clustered_data['umap_2'],
-                          c=clustered_data['cluster'], cmap='rainbow', s=120, edgecolors='k')
-
-    texts_to_annotate = artist_df if len(artist_df) < 150 else artist_df.sample(150, random_state=42)
-
-    for artist_name, row in texts_to_annotate.iterrows():
-        clean_name = str(artist_name).replace('$', '\\$')
-        plt.text(row['umap_1'], row['umap_2'], clean_name, fontsize=8, alpha=0.8)
-
-    plt.title("Artist Clustering Metalness", fontsize=16)
-    plt.xlabel("UMAP Dimension 1")
-    plt.ylabel("UMAP Dimension 2")
-    plt.colorbar(scatter, label='OPTICS Cluster ID')
+def perform_clustering_and_viz_M(artist_df, output_dir, cluster_labels=None):
+    clustered_df = cluster_artists(artist_df, ["metalness"])
+    plot_artist_clusters(
+        clustered_df,
+        output_dir,
+        "artist_clusters_optics_Metalness.png",
+        "Artist Clustering Metalness",
+        cluster_labels,
+    )
+    if cluster_labels:
+        label_dict = {
+            cluster_id: label
+            for cluster_id, label in cluster_labels.items()
+            if cluster_id != -1 and label
+        }
+        for cluster_id, label in label_dict.items():
+            cluster_points = artist_df[artist_df['cluster'] == cluster_id]
+            if cluster_points.empty:
+                continue
+            centroid = cluster_points[['umap_1', 'umap_2']].mean()
+            plt.text(
+                centroid['umap_1'],
+                centroid['umap_2'],
+                label,
+                fontsize=12,
+                fontweight='bold',
+                ha='center',
+                va='center',
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=2),
+            )
     os.makedirs(output_dir, exist_ok=True)
     out_path = os.path.join(output_dir, "artist_clusters_optics_Metalness.png")
     if os.path.exists(out_path):
@@ -165,6 +207,7 @@ def perform_clustering_and_viz_M(artist_df, output_dir):
     print(f"Plot saved to {out_path}")
     plt.close()
     plt.close()
+    return artist_df
 
 
 if __name__ == "__main__":
@@ -172,6 +215,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="parser")
     parser.add_argument("-f", "--filepath", default=None, help = "path to dataset in json format")
     parser.add_argument('-o', "--output", default=None, help="path to output csv metalness ranking")
+    parser.add_argument('-t', "--top-artists", type=int, default=50, help="top nth artists by album count to cluster")
 
     args = parser.parse_args()
 
@@ -185,9 +229,9 @@ if __name__ == "__main__":
         metal_songs.to_csv(csv_cache_path, index=False)
         print(f"[INFO] Data cached to '{csv_cache_path}'")
     metal_df = process_metal_songs(metal_songs)
-    metalness_df = pd.read_csv("output_data/metalness.csv")
+    metalness_df = load_metalness_df()
     metalness_scores = pd.Series(metalness_df.Metalness.values, index=metalness_df.Word).to_dict()
-    top_bands = top_bands_by_album_count(metal_df, top_bands=50)
+    top_bands = top_bands_by_album_count(metal_df, top_bands=args.top_artists)
     top_bands_with_metrics = calculate_metrics(top_bands, metalness_scores, swears)
     top_bands_with_metrics_average = top_bands_with_metrics.groupby('artist')[["metalness", "readability", "swear_word_ratio"]].mean()
     #perform_clustering_and_viz_MRSW(top_bands_with_metrics_average, "output_pics")

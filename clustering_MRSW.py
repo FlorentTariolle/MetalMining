@@ -3,6 +3,8 @@ import os
 import re
 from argparse import ArgumentParser
 import pandas as pd
+
+from analyzer_3 import hedonometer_df, words_happiness
 from metalness_loader import load_metalness_df
 from sklearn.metrics import adjusted_rand_score
 from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
@@ -26,23 +28,32 @@ except LookupError:
 extra_tokens_to_remove = {'ve', 'dont', 'll', 'nt'}
 custom_stopwords = base_stopwords.union(extra_tokens_to_remove)
 
+try:
+    hedonometer_df = pd.read_csv("cache/hedonometer.csv")
+except FileNotFoundError:
+    print("File not found. Please load the file and retry")
+
 def top_bands_by_album_count(df: pd.DataFrame, top_bands: int):
     top_artists_list = df.groupby('artist')['album'].nunique().nlargest(top_bands).index
     filtered_df = df[df['artist'].isin(top_artists_list)]
     return filtered_df
 
-def calculate_metrics(metal_df: pd.DataFrame, metalness_scores: dict, swears: list) -> pd.DataFrame:
+def calculate_metrics(metal_df: pd.DataFrame, metalness_scores: dict, happiness_scores : dict, swears: list) -> pd.DataFrame:
     print("Calculating metrics for individual songs...")
     out_df = metal_df.copy()
     out_df['lyrics'] = out_df['lyrics'].astype(str)
     out_df = compute_song_metrics(out_df, swears)
     out_df['metalness'] = out_df['lyrics'].apply(
-        lambda x: calculate_average_metalness(x, metalness_scores)
+        lambda x: calculate_average_text_score(x, metalness_scores)
     )
+    out_df['happiness'] = out_df['lyrics'].apply(
+        lambda x : calculate_average_text_score(x, happiness_scores)
+    )
+
     return out_df
 
 
-def calculate_text_metalness(lyrics_text, scores_dict):
+def calculate_average_text_score(lyrics_text, scores_dict):
     """
     Calculates metalness for a single string of text based on the provided dictionary.
     """
@@ -170,6 +181,18 @@ def perform_clustering_and_viz_MRSW(artist_df, output_dir, cluster_labels=None):
     )
     return clustered_df
 
+def perform_clustering_and_viz_MH(artist_df, output_dir, cluster_labels = None):
+    features = ["metalness", "happiness"]
+    clustered_df = cluster_artists(artist_df, features)
+    plot_artist_clusters(
+        clustered_df,
+        output_dir,
+        "artist_clusters_optics_Happiness.png",
+        "Artist Clustering (Metalness, Happiness)",
+        cluster_labels,
+    )
+    return clustered_df
+
 def perform_clustering_and_viz_M(artist_df, output_dir, cluster_labels=None):
     clustered_df = cluster_artists(artist_df, ["metalness"])
     plot_artist_clusters(
@@ -211,8 +234,8 @@ def perform_clustering_and_viz_M(artist_df, output_dir, cluster_labels=None):
     return artist_df
 
 
-def cluster_evaluation(artist_df_1, artist_df_2):
-    cluster_1, cluster_2 = cluster_artists(artist_df_1, ["metalness"]), cluster_artists(artist_df_2, ["metalness", "readability", "swear_word_ratio"])
+def cluster_evaluation(artist_df_1, artist_df_2, features_1 : list[str], features_2 : list[str]):
+    cluster_1, cluster_2 = cluster_artists(artist_df_1, features_1), cluster_artists(artist_df_2, features_2)
     return adjusted_rand_score(cluster_1["cluster"], cluster_2["cluster"])
 
 if __name__ == "__main__":
@@ -235,10 +258,17 @@ if __name__ == "__main__":
         print(f"[INFO] Data cached to '{csv_cache_path}'")
     metal_df = process_metal_songs(metal_songs)
     metalness_df = load_metalness_df()
+    happiness_df = words_happiness(metalness_df, hedonometer_df)
+    happiness_df = happiness_df.rename(columns = {"Happiness Score" : "happiness"})
+    print(happiness_df.head(20))
+    happiness_scores = pd.Series(happiness_df.happiness.values, index=happiness_df.Word).to_dict()
     metalness_scores = pd.Series(metalness_df.Metalness.values, index=metalness_df.Word).to_dict()
+
     top_bands = top_bands_by_album_count(metal_df, top_bands=args.top_artists)
-    top_bands_with_metrics = calculate_metrics(top_bands, metalness_scores, swears)
-    top_bands_with_metrics_average = top_bands_with_metrics.groupby('artist')[["metalness", "readability", "swear_word_ratio"]].mean()
+    top_bands_with_metrics = calculate_metrics(top_bands, metalness_scores,happiness_scores, swears)
+    top_bands_with_metrics_average = top_bands_with_metrics.groupby('artist')[["metalness", "readability", "happiness", "swear_word_ratio",]].mean()
     #perform_clustering_and_viz_MRSW(top_bands_with_metrics_average, "output_pics")
     #perform_clustering_and_viz_M(top_bands_with_metrics_average, "output_pics")
-    print(f"Adjusted Rand Index : {cluster_evaluation(top_bands_with_metrics_average, top_bands_with_metrics_average)}")
+    print(f"Adjusted Rand Index  MRSW vs MH : {cluster_evaluation(top_bands_with_metrics_average, top_bands_with_metrics_average, ["metalness", "readability","swear_word_ratio"],["metalness", "happiness"])}")
+    #perform_clustering_and_viz_MH(top_bands_with_metrics_average, "output_pics")
+    print(f"Adjusted Rand Index  : {cluster_evaluation(top_bands_with_metrics_average, top_bands_with_metrics_average, ["metalness"],["metalness", "happiness"])}")

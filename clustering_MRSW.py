@@ -4,6 +4,7 @@ import re
 from argparse import ArgumentParser
 import pandas as pd
 from metalness_loader import load_metalness_df
+from sklearn.metrics import adjusted_rand_score
 from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 from albums_clustering import calculate_average_metalness
 import matplotlib.pyplot as plt
@@ -210,6 +211,10 @@ def perform_clustering_and_viz_M(artist_df, output_dir, cluster_labels=None):
     return artist_df
 
 
+def cluster_evaluation(artist_df_1, artist_df_2):
+    cluster_1, cluster_2 = cluster_artists(artist_df_1, ["metalness"]), cluster_artists(artist_df_2, ["metalness", "readability", "swear_word_ratio"])
+    return adjusted_rand_score(cluster_1["cluster"], cluster_2["cluster"])
+
 if __name__ == "__main__":
     swears = load_list(swear_path)
     parser = ArgumentParser(description="parser")
@@ -235,4 +240,5 @@ if __name__ == "__main__":
     top_bands_with_metrics = calculate_metrics(top_bands, metalness_scores, swears)
     top_bands_with_metrics_average = top_bands_with_metrics.groupby('artist')[["metalness", "readability", "swear_word_ratio"]].mean()
     #perform_clustering_and_viz_MRSW(top_bands_with_metrics_average, "output_pics")
-    perform_clustering_and_viz_M(top_bands_with_metrics_average, "output_pics")
+    #perform_clustering_and_viz_M(top_bands_with_metrics_average, "output_pics")
+    print(f"Adjusted Rand Index : {cluster_evaluation(top_bands_with_metrics_average, top_bands_with_metrics_average)}")

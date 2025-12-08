@@ -69,11 +69,16 @@ def tf_idf(tf_corpus, idf_corpus):
 
 
 
-def optics_clustering(data):
+def optics_clustering(data, xi=0.05, metric='cosine'):
     """
+    Clustering des données avec OPTICS.
+
+    paramètres:
+        data : les données (ici matrice tf-idf)
+        *args : hyperparamètres d'OPTICS
     """
 
-    optics = OPTICS(xi=0.05, metric='cosine')
+    optics = OPTICS(xi=xi, metric=metrci)
     optics.fit(data)
     return optics.labels_
 
@@ -83,9 +88,9 @@ def mapper(data, n_neighbors=5, min_dist=0.2, metric='cosine', random_state=42):
     """
     Effectue une transformation de visualisation des données avec umap.
 
-    paramètre:
+    paramètres:
         data : les données
-        n_neighbors, min_dist, metric, random_state : hyperparamètres de UMAP
+        *args : hyperparamètres de UMAP
     
     return:
         les données transformées
@@ -102,17 +107,24 @@ def mapper(data, n_neighbors=5, min_dist=0.2, metric='cosine', random_state=42):
 
 
 
-def plot(mapper, labels, artists, fig_name):
+def plot(embedding, labels, artists, fig_name):
     """
+    Enregistre l'affichage de l'embedding des données en 2D avec les labels du clustering.
+
+    paramètres:
+        embedding : données transformées pour visualisation 2D
+        labels : les labels des données
+        artists : les noms des artists
+        fig_name : nom du fichier à enregistrer
     """
     
     plt.figure(figsize=(10,10))
-    plt.scatter(mapper[:, 0], mapper[:, 1], c=labels)
+    plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
     plt.title("Visualisation UMAP des artists en fonction de leur metallitude")
     plt.xlabel("axe 1")
     plt.ylabel("axe 2")
     for idx, artist in enumerate(artists):
-        plt.text(mapper[idx, 0] + 0.1, mapper[idx, 1] + 0.05, artist, fontsize=8)
+        plt.text(embedding[idx, 0] + 0.1, embedding[idx, 1] + 0.05, artist, fontsize=8)
 
     output_path = "output_pics/" + fig_name + ".png"
     if os.path.exists(output_path):
@@ -137,7 +149,7 @@ if __name__ == "__main__" :
     # calcul de la matrice tf-idf
     metallitude_matrix, _ = tf_idf(top_artists_lyrics['lyrics'], metal_lyrics['lyrics'].to_list())
 
-    # clusterising des artistes
+    # clustering des artistes
     labels = optics_clustering(metallitude_matrix)
 
     # visualisation 2D des données

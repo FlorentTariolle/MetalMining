@@ -75,10 +75,10 @@ def optics_clustering(data, xi=0.05, metric='cosine'):
 
     paramètres:
         data : les données (ici matrice tf-idf)
-        *args : hyperparamètres d'OPTICS
+        *args : paramètres d'OPTICS
     """
 
-    optics = OPTICS(xi=xi, metric=metrci)
+    optics = OPTICS(xi=xi, metric=metric)
     optics.fit(data)
     return optics.labels_
 
@@ -90,7 +90,7 @@ def mapper(data, n_neighbors=5, min_dist=0.2, metric='cosine', random_state=42):
 
     paramètres:
         data : les données
-        *args : hyperparamètres de UMAP
+        *args : paramètres de UMAP
     
     return:
         les données transformées
@@ -138,7 +138,8 @@ def plot(embedding, labels, artists, fig_name):
 if __name__ == "__main__" :
 
     parser = ArgumentParser(description="parser")
-    parser.add_argument("-f", "--figname", default="artist_clustering", help = "name of the output figure")
+    parser.add_argument("-f", "--figname", default="artists_metallitude", help = "name of the output figure")
+    parser.add_argument("-c", "--clustering", default=False, help = "to cluster the data or not")
     args = parser.parse_args()
 
     # organisation des données
@@ -150,7 +151,9 @@ if __name__ == "__main__" :
     metallitude_matrix, _ = tf_idf(top_artists_lyrics['lyrics'], metal_lyrics['lyrics'].to_list())
 
     # clustering des artistes
-    labels = optics_clustering(metallitude_matrix)
+    labels = None
+    if args.clustering:
+        labels = optics_clustering(metallitude_matrix, xi=0.01)
 
     # visualisation 2D des données
     embedding = mapper(metallitude_matrix)

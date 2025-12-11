@@ -17,6 +17,27 @@ except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
     metal_df = load_music_data_with_lyrics("data/dataset.json")
 
+
+def compute_songs_metalness_from_lyrics(lyrics, metal_dict):
+    if not isinstance(lyrics, str):
+        return None
+
+    words = lyrics.lower().split()
+    scores = [metal_dict.get(w) for w in words if metal_dict.get(w) is not None]
+
+    if len(scores) == 0:
+        return None
+
+    return sum(scores) / len(scores)
+
+try:
+    words_metalness_df = pd.read_csv("output_data/words_metalness.csv")
+    metal_dict = dict(zip(words_metalness_df["words"].str.lower(), words_metalness_df["metalness"]))
+    metal_df["metalness"] = metal_df["lyrics"].fillna("").apply(
+        lambda x: compute_songs_metalness_from_lyrics(x, metal_dict))
+except FileNotFoundError:
+    print("Warning: Words metalness dataset not found. Please compute process_worldcloud_metalness.")
+
 try:
     non_metal_df = pd.read_csv("cache/non_metal_lyrics.csv", dtype=str)
 except FileNotFoundError:
@@ -147,9 +168,9 @@ def aggregate_sentiment_by_album(df: pd.DataFrame) -> pd.DataFrame:
     if "swear_word_ratio" in df.columns:
         agg["swear_word_ratio"] = ("swear_word_ratio", "mean")
     if "release_year" in df.columns:
-        agg["release_year"] = ("release_year", "min")
+        agg["release_year"] = ("release_year", "first")
     if "album_type" in df.columns:
-        agg["album_type"] = ("album_type", "min")
+        agg["album_type"] = ("album_type", "first")
 
     albums = (
         df.groupby("album")
@@ -286,7 +307,15 @@ if __name__ == "__main__":
     print(happiness_df.tail(20))
 
     ensure_nltk_resources()
-    metal_with_sent = add_sentiment_index(metal_df)
+    cache_path = "cache/lyrics_with_sentiment.csv"
+    if os.path.exists(cache_path):
+        print("Loading cached sentiment data...")
+        metal_with_sent = pd.read_csv(cache_path)
+    else:
+        print("Sentiment cache not found. Computing sentiment.")
+        metal_with_sent = add_sentiment_index(metal_df)
+        metal_with_sent.to_csv(cache_path, index=False)
+        print("Sentiment data saved to", cache_path)
 
     pos, neg = top_songs_by_sentiment(metal_with_sent, n=5)
     print("\nTOP POSITIVE SONGS:\n", pos.to_string(index=False))

@@ -10,7 +10,6 @@ from nltk import tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.data import find
 from tqdm import tqdm
-from scipy import stats
 
 try:
     metal_df = pd.read_csv("cache/lyrics_data.csv")
@@ -18,8 +17,6 @@ except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
     metal_df = load_music_data_with_lyrics("data/dataset.json")
 
-if "language" in metal_df.columns:
-    metal_df = metal_df[metal_df["language"] == "en"]
 
 def compute_songs_metalness_from_lyrics(lyrics, metal_dict):
     if not isinstance(lyrics, str):
@@ -35,7 +32,6 @@ def compute_songs_metalness_from_lyrics(lyrics, metal_dict):
 
 try:
     words_metalness_df = pd.read_csv("output_data/words_metalness.csv")
-    words_metalness_df = words_metalness_df[words_metalness_df["language"] == "en"]
     metal_dict = dict(zip(words_metalness_df["words"].str.lower(), words_metalness_df["metalness"]))
     metal_df["metalness"] = metal_df["lyrics"].fillna("").apply(
         lambda x: compute_songs_metalness_from_lyrics(x, metal_dict))
@@ -71,7 +67,6 @@ def ensure_nltk_resources():
 
 def words_happiness(words_metalness_dataset: pd.DataFrame,
                     happiness_dataset: pd.DataFrame) -> pd.DataFrame:
-    words_metalness_dataset = words_metalness_dataset[words_metalness_dataset["language"] == "en"]
     output = (
         pd.merge(
             words_metalness_dataset,
@@ -80,7 +75,7 @@ def words_happiness(words_metalness_dataset: pd.DataFrame,
             how="left",
         )
         .sort_values("Happiness Score", ascending=False)
-        .drop(columns=[c for c in ["Word in English", "Standard Deviation of Rating"] if c in happiness_dataset.columns or c in words_metalness_dataset.columns], errors='ignore')
+        .drop(columns=["Word in English"])
         .dropna(subset=["Happiness Score"])
         .reset_index(drop=True)
     )
@@ -204,23 +199,11 @@ def plot_artist_scatter_metalness_sentiment(df: pd.DataFrame) -> None:
     if "metalness" not in df.columns or "sentiment" not in df.columns:
         return
 
-    mask = df["metalness"].notna() & df["sentiment"].notna()
-    clean_df = df[mask].sort_values("metalness")
-    
-    slope, intercept, r_value, p_value, std_err = stats.linregress(clean_df["metalness"], clean_df["sentiment"])
-    r2 = r_value**2
-    print(f"R2: {r2}")
-
     plt.figure(figsize=(10, 7))
-    plt.scatter(clean_df["metalness"], clean_df["sentiment"], alpha=0.7, s=30, label="Artists")
-    
-    # Trace de la ligne de régression
-    plt.plot(clean_df["metalness"], slope * clean_df["metalness"] + intercept, color='red', label='Regression line')
-    
+    plt.scatter(df["metalness"], df["sentiment"], alpha=0.7, s=30)
     plt.xlabel("Metalness")
     plt.ylabel("Sentiment (average VADER)")
-    plt.title(f"Artists: metalness vs sentiment (R2: {r2:.4f})")
-    plt.legend()
+    plt.title("Artists: metalness vs sentiment")
     plt.tight_layout()
     plt.show()
 
@@ -320,8 +303,8 @@ def plot_sentiment_path(df_path: pd.DataFrame, artist: str) -> None:
 
 if __name__ == "__main__":
     happiness_df = words_happiness(words_metalness_df, hedonometer_df)
-    print(happiness_df.head(20).to_string(index=False))
-    print(happiness_df.tail(20).to_string(index=False))
+    print(happiness_df.head(20))
+    print(happiness_df.tail(20))
 
     ensure_nltk_resources()
     cache_path = "cache/lyrics_with_sentiment.csv"

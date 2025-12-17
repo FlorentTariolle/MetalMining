@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from process_wordcloud_metalness import load_music_data_with_lyrics
+from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 import pandas as pd
 from metalness_loader import load_metalness_df
 
@@ -313,7 +313,7 @@ if __name__ == "__main__":
         metal_with_sent = pd.read_csv(cache_path)
     else:
         print("Sentiment cache not found. Computing sentiment.")
-        metal_with_sent = add_sentiment_index(metal_df)
+        metal_with_sent = add_sentiment_index(process_metal_songs(metal_df))
         metal_with_sent.to_csv(cache_path, index=False)
         print("Sentiment data saved to", cache_path)
 

@@ -12,10 +12,13 @@ import umap
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.corpus import stopwords
 from sklearn.cluster import OPTICS
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 
 from argparse import ArgumentParser
 
 from process_wordcloud_metalness import load_music_data_with_lyrics
+
 
 
 # Ignore the warning on the umap random seed
@@ -43,24 +46,107 @@ except FileNotFoundError:
 
 
 
-def album_tfidf_matrix(album_lyrics):
+def tf_idf(tf_corpus, idf_corpus):
+    """
+    Calcule la matrice tf-idf entre des documents et leur corpus.
+    Ici les documents doivent être les lyrics des 100 artists avec le plus de chansons, et le corpus le dataset de lyrics metal complet.
 
-    vectorizer = TfidfVectorizer(
-        stop_words=list(custom_stopwords),
-        max_features=5000,
-        min_df=5,)
-
-    tfidf_matrix = vectorizer.fit_transform(album_lyrics['lyrics'])
+    parametres:
+        tf_corpus : documents
+        idf_corpus : corpus global
     
-    return tfidf_matrix, vectorizer
+    retour:
+        la matrice tf-idf
+        l'objet vectorizer
+    """
+
+    vectorizer = TfidfVectorizer(stop_words=list(custom_stopwords))
+    
+    vectorizer.fit(idf_corpus)
+    matrix = vectorizer.transform(tf_corpus)
+    
+    return matrix, vectorizer
 
 
 
-def optics_clustering(X):
+def optics_clustering(data, xi=0.05, metric='cosine', min_cluster_size=0.1):
+    """
+    Clustering des données avec OPTICS.
 
-    optics = OPTICS(min_samples = 2, xi=0.05, min_cluster_size=0.1)
-    optics.fit(X)
+    paramètres:
+        data : les données (ici matrice tf-idf)
+        *args : paramètres d'OPTICS
+    
+    retour:
+        les labels des données
+    """
+
+    optics = OPTICS(xi=xi, metric=metric, min_cluster_size=min_cluster_size)
+    optics.fit(data)
     return optics.labels_
+
+
+
+def kmeans_clustering(data, n_clusters=np.arange(2,11), return_scores: bool=True, fig_name="KMeans_scores"):
+    """
+    Clustering des données avec KMeans.
+
+    paramètres:
+        data : les données (ici matrice tf-idf)
+        n : liste des nombres de clusters avec lequel on applique KMeans
+        return_scores : afficher ou non les sihlouette_scores en fonction du nombre de clusters
+        fig_name : nom de la figure à sauvegarder (si return_scores=True)
+
+    retour:
+        les labels des données par le meilleur clustering
+    """
+
+    kmeans = KMeans()
+    labels = []
+    scores = []
+
+    for n in n_clusters:
+        kmeans.n_clusters = n
+        kmeans.fit(data)
+        labels.append(kmeans.labels_)
+        scores.append(silhouette_score(data, kmeans.labels_))
+    
+    if return_scores:
+        output_path = "output_pics/" + fig_name + ".png"
+        plt.plot(n_clusters, scores)
+        plt.grid()
+        plt.title("Score de silhouette des clusterings KMeans")
+        plt.xlabel("nombre de clusters")
+        plt.ylabel("score")
+        plt.savefig(output_path, bbox_inches='tight')
+        plt.close()
+    
+    arg_score = np.argmax(scores)
+
+    return labels[arg_score]
+
+
+
+def mapper(data, n_neighbors=5, min_dist=0.2, metric='cosine', random_state=None):
+    """
+    Effectue une transformation de visualisation des données avec umap.
+
+    paramètres:
+        data : les données
+        *args : paramètres de UMAP
+    
+    return:
+        les données transformées
+    """
+
+    mapper = umap.UMAP(
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        metric=metric,
+        random_state=random_state
+        )
+    
+    return mapper.fit_transform(data)
 
 
 
@@ -120,16 +206,91 @@ def plot_clusters(dataframe, X, vectorizer):
     out = pd.DataFrame(cluster_rows)
     out.to_csv("output_pics/albums_clusters.csv", index=False)
 
+def plot(embedding, labels, albums, fig_name):
+    """
+    Enregistre l'affichage de l'embedding des données en 2D avec les labels du clustering.
+
+    paramètres:
+        embedding : données transformées pour visualisation 2D
+        labels : les labels des données
+        albums : les noms des albums
+        fig_name : nom du fichier à enregistrer
+    """
+    
+    plt.figure(figsize=(10,10))
+    plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
+    plt.title("Visualisation UMAP des artists en fonction de leur metallitude")
+    plt.xlabel("axe 1")
+    plt.ylabel("axe 2")
+    # Clean album names to remove dollar signs that break matplotlib
+    for i, album in enumerate(albums):
+        clean_album = str(album).replace('$', '')
+        clean_album = clean_album.encode("ascii", "ignore").decode()
+        plt.text(embedding[i, 0] + 0.1,
+                embedding[i, 1] + 0.3,
+                clean_album,
+                fontsize=8)
+
+    output_path = "output_pics/" + fig_name + ".png"
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    os.makedirs("output_pics", exist_ok=True)
+    plt.savefig(output_path, bbox_inches='tight')
+    plt.close()
+
 
 
 if __name__ == "__main__" :
 
-    top_100_artists = (metal_df["artist"].value_counts().head(100).index.tolist())
-    selected_artists = top_100_artists[:5]
-    
-    metal_df = metal_df[metal_df['artist'].isin(selected_artists)]
-    album_lyrics = metal_df.groupby('album')['lyrics'].agg(lambda x : " ".join(x.astype(str))).reset_index()    
-    metalness_matrix, vectorizer = album_tfidf_matrix(album_lyrics)
+    parser = ArgumentParser(description="parser")
+    parser.add_argument("-f", "--figname", default="tf-idf_on_albums", help = "name of the output figure")
+    parser.add_argument("-c", "--clustering", default=None, help = "the method of clustering : {'OPTICS', 'Kmeans'}")
+    parser.add_argument("-a", "--artists", default=20, help = "the artists of whose to compute the albums")
+    args = parser.parse_args()
+
+    # sélection des artistes
+    top_100_artists = metal_df["artist"].value_counts().head(100).index.tolist()
+    if type(args.artists) == int:
+        selected_artists = top_100_artists[:(args.artists+1)]
+    else:
+        selected_artists = args.artists
 
     print(f"\nArtists selected : {selected_artists}\n")
-    plot_clusters(album_lyrics, metalness_matrix, vectorizer)
+
+    # organisation des données
+    metal_album_lyrics = (metal_df.groupby(["artist", "album"], as_index=False).agg(lyrics=("lyrics", lambda x: " ".join(x.dropna().astype(str)))))
+    selected_artists_albums = metal_album_lyrics[metal_album_lyrics['artist'].isin(selected_artists)]
+    albums = selected_artists_albums["album"].tolist()
+    metal_album_lyrics = metal_album_lyrics["lyrics"].tolist()
+    selected_artists_albums = selected_artists_albums['lyrics'].tolist()
+    
+    
+    # calcul de la matrice tf-idf
+    metal_matrix, vectorizer = tf_idf(selected_artists_albums, metal_album_lyrics)
+
+    # clustering des albums
+    labels = None
+    if args.clustering is not None:
+        if args.clustering == 'OPTICS':
+            labels = optics_clustering(metal_matrix)
+        elif args.clustering == 'KMeans':
+            labels = kmeans_clustering(metal_matrix)
+        else:
+            raise TypeError("La méthode de clustering n'est pas valide.")
+        
+        # print the thematical words of each clusters
+        print("===== Thematical words of each clusters =====")
+        feature_names = np.array(vectorizer.get_feature_names_out())
+        for c in np.unique(labels):
+            cluster_indices = np.where(labels == c)[0]
+            cluster_tfidf = metal_matrix[cluster_indices].mean(axis=0).A1
+            top_words = feature_names[cluster_tfidf.argsort()[-10:][::-1]]
+            if c == -1:  # bruit
+                print(f"Bruit : {', '.join(top_words)}")
+            else:
+                print(f"Cluster {c} : {', '.join(top_words)}")
+        print("\n")
+
+    # visualisation 2D des données
+    embedding = mapper(metal_matrix)
+    plot(embedding, labels, albums, args.figname)

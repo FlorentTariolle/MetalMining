@@ -1,18 +1,42 @@
 #!/usr/bin/python3
-from process_wordcloud_metalness import load_music_data_with_lyrics
+from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 import pandas as pd
 from metalness_loader import load_metalness_df
 
 import matplotlib.pyplot as plt
+import os
+import nltk
 from nltk import tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
+from nltk.data import find
+from tqdm import tqdm
 
 try:
     metal_df = pd.read_csv("cache/lyrics_data.csv")
 except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
     metal_df = load_music_data_with_lyrics("data/dataset.json")
+
+
+def compute_songs_metalness_from_lyrics(lyrics, metal_dict):
+    if not isinstance(lyrics, str):
+        return None
+
+    words = lyrics.lower().split()
+    scores = [metal_dict.get(w) for w in words if metal_dict.get(w) is not None]
+
+    if len(scores) == 0:
+        return None
+
+    return sum(scores) / len(scores)
+
+try:
+    words_metalness_df = pd.read_csv("output_data/words_metalness.csv")
+    metal_dict = dict(zip(words_metalness_df["words"].str.lower(), words_metalness_df["metalness"]))
+    metal_df["metalness"] = metal_df["lyrics"].fillna("").apply(
+        lambda x: compute_songs_metalness_from_lyrics(x, metal_dict))
+except FileNotFoundError:
+    print("Warning: Words metalness dataset not found. Please compute process_worldcloud_metalness.")
 
 try:
     non_metal_df = pd.read_csv("cache/non_metal_lyrics.csv", dtype=str)
@@ -27,6 +51,18 @@ except FileNotFoundError:
     hedonometer_df = pd.DataFrame(columns=["Word", "Happiness Score", "Word in English"])
 
 words_metalness_df = load_metalness_df()
+
+tqdm.pandas()
+
+nltk.data.path.append(os.path.join(os.getcwd(), "resources"))
+
+def ensure_nltk_resources():
+    for resource in ["punkt", "vader_lexicon"]:
+        try:
+            find(resource)
+        except LookupError:
+            nltk.download(resource)
+
 
 
 def words_happiness(words_metalness_dataset: pd.DataFrame,
@@ -68,7 +104,7 @@ def add_sentiment_index(df: pd.DataFrame) -> pd.DataFrame:
 
     out = df.copy()
     out["sentiment_index"] = (
-        out["lyrics"].fillna("").astype(str).apply(measure_lyrics_sentiment)
+        out["lyrics"].fillna("").astype(str).progress_apply(measure_lyrics_sentiment)
     )
     return out
 
@@ -132,13 +168,13 @@ def aggregate_sentiment_by_album(df: pd.DataFrame) -> pd.DataFrame:
     if "swear_word_ratio" in df.columns:
         agg["swear_word_ratio"] = ("swear_word_ratio", "mean")
     if "release_year" in df.columns:
-        agg["release_year"] = ("release_year", "min")
+        agg["release_year"] = ("release_year", "first")
     if "album_type" in df.columns:
-        agg["album_type"] = ("album_type", "min")
+        agg["album_type"] = ("album_type", "first")
 
     albums = (
         df.groupby("album")
-        .agg(**agg, artist=("artist", "min"))
+        .agg(**agg, artist=("artist", "first"))
         .reset_index()
         .sort_values("sentiment", ascending=False)
         .reset_index(drop=True)
@@ -270,7 +306,16 @@ if __name__ == "__main__":
     print(happiness_df.head(20))
     print(happiness_df.tail(20))
 
-    metal_with_sent = add_sentiment_index(metal_df)
+    ensure_nltk_resources()
+    cache_path = "cache/lyrics_with_sentiment.csv"
+    if os.path.exists(cache_path):
+        print("Loading cached sentiment data...")
+        metal_with_sent = pd.read_csv(cache_path)
+    else:
+        print("Sentiment cache not found. Computing sentiment.")
+        metal_with_sent = add_sentiment_index(process_metal_songs(metal_df))
+        metal_with_sent.to_csv(cache_path, index=False)
+        print("Sentiment data saved to", cache_path)
 
     pos, neg = top_songs_by_sentiment(metal_with_sent, n=5)
     print("\nTOP POSITIVE SONGS:\n", pos.to_string(index=False))

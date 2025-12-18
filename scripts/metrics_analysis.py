@@ -35,6 +35,15 @@ def keep_top_bands(df, top_bands):
 
 def run(json_path: str, swear_path: str, top_bands: int, seed: int, sample_size: int = None):
     """Main analysis function."""
+    print("=" * 70)
+    print("WARNING: This analysis performs computationally intensive operations")
+    print("(swear word ratio and readability calculations for all songs).")
+    print("The computation may take a very long time depending on dataset size.")
+    print()
+    print("Tip: Use --sample <N> to test with a smaller subset first.")
+    print("=" * 70)
+    print()
+    
     # 1) Load data with lyrics and filter for English metal songs
     df_raw = load_music_data_with_lyrics(json_path)
     df = process_metal_songs(df_raw)

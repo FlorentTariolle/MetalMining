@@ -11,13 +11,12 @@ import umap
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.corpus import stopwords
-from sklearn.cluster import OPTICS
-from sklearn.cluster import KMeans
+from sklearn.cluster import OPTICS, KMeans
 from sklearn.metrics import silhouette_score
 
 from argparse import ArgumentParser
 
-from process_wordcloud_metalness import load_music_data_with_lyrics
+from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 
 
 
@@ -43,6 +42,10 @@ try:
 except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
     metal_df = load_music_data_with_lyrics("data/dataset.json")
+
+# process the metal dataset to keep songs with lyrics in english
+metal_df["has_lyrics"] = metal_df["has_lyrics"].astype(str).str.lower().map({"true": True, "false": False})
+metal_df = process_metal_songs(metal_df)
 
 
 
@@ -150,62 +153,6 @@ def mapper(data, n_neighbors=5, min_dist=0.2, metric='cosine', random_state=None
 
 
 
-def plot_clusters(dataframe, X, vectorizer):
-
-    reducer = umap.UMAP(n_neighbors=20, min_dist=0.1, metric='cosine', random_state=42)
-    embedding = reducer.fit_transform(X)
-
-    labels = optics_clustering(embedding)
-
-    # print the thematical words of each clusters
-    print("===== Thematical words of each clusters =====")
-    feature_names = np.array(vectorizer.get_feature_names_out())
-    for c in np.unique(labels):
-        cluster_indices = np.where(labels == c)[0]
-        cluster_tfidf = X[cluster_indices].mean(axis=0).A1
-        top_words = feature_names[cluster_tfidf.argsort()[-10:][::-1]]
-        if c == -1:  # bruit
-            print(f"Bruit : {', '.join(top_words)}")
-        else:
-            print(f"Cluster {c} : {', '.join(top_words)}")
-    print("\n")
-
-    plt.figure(figsize=(10, 6))
-    plt.scatter(embedding[:,0], embedding[:,1], c=labels, cmap='Spectral', s=30)
-    
-    # Clean album names to remove dollar signs that break matplotlib
-    for i, album in enumerate(dataframe['album']):
-        clean_album = str(album).replace('$', '')
-        clean_album = clean_album.encode("ascii", "ignore").decode()
-        plt.text(embedding[i, 0] + 0.1,
-                embedding[i, 1] + 0.3,
-                clean_album,
-                fontsize=8)
-    
-    plt.title("Visualisation UMAP des albums")
-    plt.xlabel("UMAP 1")
-    plt.ylabel("UMAP 2")
-
-    plt.legend(labels=labels, title="Clusters", bbox_to_anchor=(1.05, 1), loc='upper left')
-
-    output_path = "output_pics/umap_metalness.png"
-    if os.path.exists(output_path):
-        os.remove(output_path)
-    os.makedirs("output_pics", exist_ok=True)
-    plt.savefig(output_path, bbox_inches='tight')
-    plt.close()
-
-    # enrgistrement des noms d'albums par cluster dans un csv
-    df = dataframe.copy()
-    df["cluster"] = labels
-    cluster_rows = []
-    for c in sorted(df["cluster"].unique()):
-        albums = df[df["cluster"] == c]["album"].tolist()
-        album_list = "; ".join(albums)  # formatage
-        cluster_rows.append({"cluster": c, "albums": album_list})
-    out = pd.DataFrame(cluster_rows)
-    out.to_csv("output_pics/albums_clusters.csv", index=False)
-
 def plot(embedding, labels, albums, fig_name):
     """
     Enregistre l'affichage de l'embedding des données en 2D avec les labels du clustering.
@@ -218,10 +165,11 @@ def plot(embedding, labels, albums, fig_name):
     """
     
     plt.figure(figsize=(10,10))
-    plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
+    scatter = plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
     plt.title("Visualisation UMAP des artists en fonction de leur metallitude")
     plt.xlabel("axe 1")
     plt.ylabel("axe 2")
+
     # Clean album names to remove dollar signs that break matplotlib
     for i, album in enumerate(albums):
         clean_album = str(album).replace('$', '')
@@ -230,6 +178,11 @@ def plot(embedding, labels, albums, fig_name):
                 embedding[i, 1] + 0.3,
                 clean_album,
                 fontsize=8)
+    
+    # legend the figure
+    unique_labels = sorted(set(labels))
+    handles, _ = scatter.legend_elements()
+    plt.legend(handles, [f"Cluster {i}" for i in unique_labels], title="Clusters", loc="best")
 
     output_path = "output_pics/" + fig_name + ".png"
     if os.path.exists(output_path):
@@ -250,10 +203,7 @@ if __name__ == "__main__" :
 
     # sélection des artistes
     top_100_artists = metal_df["artist"].value_counts().head(100).index.tolist()
-    if type(args.artists) == int:
-        selected_artists = top_100_artists[:(args.artists+1)]
-    else:
-        selected_artists = args.artists
+    selected_artists = top_100_artists[:int(args.artists)]
 
     print(f"\nArtists selected : {selected_artists}\n")
 

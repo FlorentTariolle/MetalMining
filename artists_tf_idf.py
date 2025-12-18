@@ -11,13 +11,12 @@ import umap
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.corpus import stopwords
-from sklearn.cluster import OPTICS
-from sklearn.cluster import KMeans
+from sklearn.cluster import OPTICS, KMeans
 from sklearn.metrics import silhouette_score
 
 from argparse import ArgumentParser
 
-from process_wordcloud_metalness import load_music_data_with_lyrics
+from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 
 
 
@@ -43,6 +42,10 @@ try:
 except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
     metal_df = load_music_data_with_lyrics("data/dataset.json")
+
+# process the metal dataset to keep songs with lyrics in english
+metal_df["has_lyrics"] = metal_df["has_lyrics"].astype(str).str.lower().map({"true": True, "false": False})
+metal_df = process_metal_songs(metal_df)
 
 
 
@@ -89,7 +92,7 @@ def optics_clustering(data, xi=0.05, metric='cosine'):
 
 
 
-def kmeans_clustering(data, n_clusters=np.arange(2,11), return_scores: bool=True, fig_name="KMeans_scores"):
+def kmeans_clustering(data, n_clusters=np.arange(3,11), return_scores: bool=True, fig_name="KMeans_scores"):
     """
     Clustering des données avec KMeans.
 
@@ -164,12 +167,17 @@ def plot(embedding, labels, artists, fig_name):
     """
     
     plt.figure(figsize=(10,10))
-    plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
+    scatter = plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
     plt.title("Visualisation UMAP des artists en fonction de leur metallitude")
     plt.xlabel("axe 1")
     plt.ylabel("axe 2")
     for idx, artist in enumerate(artists):
         plt.text(embedding[idx, 0] + 0.1, embedding[idx, 1] + 0.05, artist, fontsize=8)
+
+    # legend the figure
+    unique_labels = sorted(set(labels))
+    handles, _ = scatter.legend_elements()
+    plt.legend(handles, [f"Cluster {i}" for i in unique_labels], title="Clusters", loc="best")
 
     output_path = "output_pics/" + fig_name + ".png"
     if os.path.exists(output_path):
@@ -193,7 +201,7 @@ if __name__ == "__main__" :
     top_artists_lyrics = metal_lyrics[metal_lyrics['artist'].isin(top_100_artists)]
 
     # calcul de la matrice tf-idf
-    metal_matrix, _ = tf_idf(top_artists_lyrics['lyrics'], metal_lyrics['lyrics'].to_list())
+    metal_matrix, vectorizer = tf_idf(top_artists_lyrics['lyrics'], metal_lyrics['lyrics'].to_list())
 
     # clustering des artistes
     labels = None
@@ -204,6 +212,19 @@ if __name__ == "__main__" :
             labels = kmeans_clustering(metal_matrix)
         else:
             raise TypeError("La méthode de clustering n'est pas valide.")
+        
+        # print the thematical words of each clusters
+        print("\n===== Thematical words of each clusters =====")
+        feature_names = np.array(vectorizer.get_feature_names_out())
+        for c in np.unique(labels):
+            cluster_indices = np.where(labels == c)[0]
+            cluster_tfidf = metal_matrix[cluster_indices].mean(axis=0).A1
+            top_words = feature_names[cluster_tfidf.argsort()[-10:][::-1]]
+            if c == -1:  # bruit
+                print(f"Bruit : {', '.join(top_words)}")
+            else:
+                print(f"Cluster {c} : {', '.join(top_words)}")
+        print("\n")
 
     # visualisation 2D des données
     embedding = mapper(metal_matrix)

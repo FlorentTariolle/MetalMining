@@ -63,7 +63,13 @@ def detect_language(text):
     except Exception:
         return 'unknown'
 
-def recalculate_languages(dataset_path='data/dataset.json'):
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def recalculate_languages(dataset_path=None):
+    if dataset_path is None:
+        dataset_path = os.path.join(_get_project_root(), 'data', 'dataset.json')
     """
     Recalculate language detection for all songs in the dataset.
     Updates the language field for each song and saves the updated dataset.
@@ -210,7 +216,7 @@ def main():
     # Get dataset path from command line or use default
     import argparse
     parser = argparse.ArgumentParser(description="Recalculate language detection for all songs")
-    parser.add_argument("-f", "--file", default='data/dataset.json',
+    parser.add_argument("-f", "--file", default=None,
                        help="Path to dataset JSON file (default: data/dataset.json)")
     args = parser.parse_args()
     

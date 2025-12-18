@@ -1,6 +1,10 @@
 #!/usr/bin/python3
-
+import sys
 import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import warnings
 import numpy as np
 import pandas as pd
@@ -16,7 +20,7 @@ from sklearn.metrics import silhouette_score
 
 from argparse import ArgumentParser
 
-from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
+from analysis.process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 
 
 
@@ -36,12 +40,16 @@ custom_stopwords = base_stopwords.union(extra_tokens_to_remove)
 
 
 
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # load the metal dataset
 try:
-    metal_df = pd.read_csv("cache/lyrics_data.csv", dtype=str)
+    metal_df = pd.read_csv(os.path.join(_get_project_root(), "cache", "lyrics_data.csv"), dtype=str)
 except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
-    metal_df = load_music_data_with_lyrics("data/dataset.json")
+    metal_df = load_music_data_with_lyrics(os.path.join(_get_project_root(), "data", "dataset.json"))
 
 # process the metal dataset to keep songs with lyrics in english
 metal_df["has_lyrics"] = metal_df["has_lyrics"].astype(str).str.lower().map({"true": True, "false": False})
@@ -117,7 +125,7 @@ def kmeans_clustering(data, n_clusters=np.arange(3,11), return_scores: bool=True
         scores.append(silhouette_score(data, kmeans.labels_))
     
     if return_scores:
-        output_path = "output_pics/" + fig_name + ".png"
+        output_path = os.path.join(_get_project_root(), "output_pics", fig_name + ".png")
         plt.plot(n_clusters, scores)
         plt.grid()
         plt.title("Scores de silhouette des clusterings KMeans")

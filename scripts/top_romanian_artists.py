@@ -4,10 +4,17 @@ Script to list the top 10 Romanian artists by song count.
 """
 
 import json
+import os
 import pandas as pd
 import argparse
 
-def load_music_data(filepath='data/dataset.json'):
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def load_music_data(filepath=None):
+    if filepath is None:
+        filepath = os.path.join(_get_project_root(), 'data', 'dataset.json')
     """Load and process music data from JSON file"""
     
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -63,13 +70,15 @@ def get_top_romanian_artists(df_songs, top_n=10):
 
 def main():
     parser = argparse.ArgumentParser(description="List top Romanian artists by song count")
-    parser.add_argument("-f", "--filepath", default='data/dataset.json',
+    parser.add_argument("-f", "--filepath", default=None,
                         help="Path to dataset JSON file (default: data/dataset.json)")
     parser.add_argument("-n", "--top", type=int, default=10,
                         help="Number of top artists to display (default: 10)")
     args = parser.parse_args()
     
     print("Loading dataset...")
+    if args.filepath is None:
+        args.filepath = os.path.join(_get_project_root(), 'data', 'dataset.json')
     df_songs = load_music_data(args.filepath)
     
     print("Analyzing Romanian artists...")

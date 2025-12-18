@@ -5,10 +5,15 @@ with language detection added to each song's lyrics.
 """
 
 import json
+import os
 from pathlib import Path
 from langdetect import detect, detect_langs, LangDetectException
 from tqdm import tqdm
 import sys
+
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def load_json_file(file_path):
     """Load a JSON file and return its contents."""
@@ -85,7 +90,7 @@ def merge_progress_files():
     """Merge all progress.json files into a single dataset."""
     
     # Get the data directory
-    data_dir = Path('data')
+    data_dir = Path(os.path.join(_get_project_root(), 'data'))
     if not data_dir.exists():
         print("Error: 'data' directory not found!")
         return False

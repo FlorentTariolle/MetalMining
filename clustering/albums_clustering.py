@@ -1,14 +1,19 @@
 #!/usr/bin/python3
-import numpy as np
+import sys
 import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rcParams['text.usetex'] = False
 import umap
 import re
-from metalness_loader import load_metalness_df
-from process_wordcloud_metalness import load_music_data_with_lyrics
+from utils.metalness_loader import load_metalness_df
+from analysis.process_wordcloud_metalness import load_music_data_with_lyrics
 import nltk
 from nltk.corpus import stopwords
 # Setup stopwords to match the filtering in tf_idf.py
@@ -21,12 +26,16 @@ except LookupError:
 extra_tokens_to_remove = {'ve', 'dont', 'll', 'nt'}
 custom_stopwords = base_stopwords.union(extra_tokens_to_remove)
 
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 #load metal dataset
 try:
-    metal_df = pd.read_csv("cache/lyrics_data.csv", dtype=str)
+    metal_df = pd.read_csv(os.path.join(_get_project_root(), "cache", "lyrics_data.csv"), dtype=str)
 except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
-    metal_df = load_music_data_with_lyrics("data/dataset.json")
+    metal_df = load_music_data_with_lyrics(os.path.join(_get_project_root(), "data", "dataset.json"))
 
 
 def calculate_average_metalness(lyrics_text, scores_dict):
@@ -75,7 +84,7 @@ def umap_plot(dataframe):
                  fontsize=8)
 
     plt.title("Visualisation UMAP des albums selon la metalness")
-    output_path = "output_pics/umap_metalness.png"
+    output_path = os.path.join(_get_project_root(), "output_pics", "umap_metalness.png")
     if os.path.exists(output_path):
         os.remove(output_path)
     os.makedirs("output_pics", exist_ok=True)

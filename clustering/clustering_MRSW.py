@@ -1,23 +1,33 @@
 #!/usr/bin/python3
+import sys
 import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import re
 from argparse import ArgumentParser
 import pandas as pd
 
-from analyzer_3 import hedonometer_df, words_happiness
-from metalness_loader import load_metalness_df
+from analysis.analyzer3 import hedonometer_df, words_happiness
+from utils.metalness_loader import load_metalness_df
 from sklearn.metrics import adjusted_rand_score
-from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
-from albums_clustering import calculate_average_metalness
+from analysis.process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
+from clustering.albums_clustering import calculate_average_metalness
 import matplotlib.pyplot as plt
 from sklearn.cluster import OPTICS
 import umap
 import nltk
 from nltk.corpus import stopwords
 from sklearn.preprocessing import StandardScaler
-from analyzer2 import compute_song_metrics, load_list
-csv_cache_path = "cache/lyrics_data.csv"
-swear_path = "resources/swear_words_eng.txt"
+from analysis.analyzer2 import compute_song_metrics, load_list
+
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+csv_cache_path = os.path.join(_get_project_root(), "cache", "lyrics_data.csv")
+swear_path = os.path.join(_get_project_root(), "resources", "swear_words_eng.txt")
 
 try:
     base_stopwords = set(stopwords.words('english'))
@@ -29,7 +39,7 @@ extra_tokens_to_remove = {'ve', 'dont', 'll', 'nt'}
 custom_stopwords = base_stopwords.union(extra_tokens_to_remove)
 
 try:
-    hedonometer_df = pd.read_csv("cache/hedonometer.csv")
+    hedonometer_df = pd.read_csv(os.path.join(_get_project_root(), "cache", "hedonometer.csv"))
 except FileNotFoundError:
     print("File not found. Please load the file and retry")
 
@@ -252,7 +262,7 @@ if __name__ == "__main__":
         metal_songs = pd.read_csv(csv_cache_path)
     else:
         print("[INFO] Cache not found or custom file provided. Loading from JSON...")
-        filepath = args.filepath if args.filepath is not None else 'data/dataset.json'
+        filepath = args.filepath if args.filepath is not None else os.path.join(_get_project_root(), 'data', 'dataset.json')
         metal_songs = load_music_data_with_lyrics(filepath)
         metal_songs.to_csv(csv_cache_path, index=False)
         print(f"[INFO] Data cached to '{csv_cache_path}'")

@@ -5,12 +5,17 @@ Gets the list of top bands from extract_top_bands.py and scrapes their genres.
 Uses Selenium with a real browser to bypass anti-bot protection.
 """
 
+import sys
+import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import time
 import argparse
 import urllib.parse
 from pathlib import Path
-import sys
 
 try:
     from selenium import webdriver
@@ -31,10 +36,15 @@ except ImportError:
     sys.exit(1)
 
 # Import functions from extract_top_bands.py
-from extract_top_bands import load_music_data, get_top_bands
+from utils.extract_top_bands import load_music_data, get_top_bands
 
 BASE_URL = "https://www.metal-archives.com/bands/"
-DEFAULT_OUTPUT = "data/bands_genres.json"
+
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DEFAULT_OUTPUT = os.path.join(_get_project_root(), "data", "bands_genres.json")
 DEFAULT_TOP_N = 100
 DELAY = 1  # Delay between requests in seconds
 
@@ -241,7 +251,7 @@ def main():
     )
     parser.add_argument(
         "-f", "--filepath",
-        default="data/dataset.json",
+        default=None,
         help="Path to dataset JSON file (default: data/dataset.json)"
     )
     parser.add_argument(
@@ -269,6 +279,8 @@ def main():
     args = parser.parse_args()
     
     # Get top bands using extract_top_bands functions
+    if args.filepath is None:
+        args.filepath = os.path.join(_get_project_root(), "data", "dataset.json")
     print(f"Loading dataset from {args.filepath}...")
     df = load_music_data(args.filepath)
     

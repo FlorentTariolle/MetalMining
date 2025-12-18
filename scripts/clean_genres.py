@@ -9,7 +9,12 @@ Script to clean genres from bands_genres.json.
 import json
 import re
 import argparse
+import os
 from pathlib import Path
+
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def clean_genre_string(genre_str: str) -> list:
@@ -110,7 +115,7 @@ def main():
     )
     parser.add_argument(
         "-i", "--input",
-        default="data/bands_genres.json",
+        default=None,
         help="Input JSON file (default: data/bands_genres.json)"
     )
     parser.add_argument(
@@ -119,6 +124,9 @@ def main():
         help="Output JSON file (default: overwrites input file)"
     )
     args = parser.parse_args()
+    
+    if args.input is None:
+        args.input = os.path.join(_get_project_root(), "data", "bands_genres.json")
     
     print(f"Cleaning genres from {args.input}...")
     cleaned_data = clean_genres_file(args.input, args.output)

@@ -4,15 +4,20 @@ Runs the existing MRSW clustering and annotates each cluster with the most commo
 from the labeled `bands_genres_cleaned.json` dictionary by applying a majority-vote rule.
 """
 
+import sys
+import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import argparse
 import json
-import os
 from collections import Counter
 
 import pandas as pd
 
-from analyzer2 import load_list
-from clustering_MRSW import (
+from analysis.analyzer2 import load_list
+from clustering.clustering_MRSW import (
     calculate_metrics,
     cluster_artists,
     csv_cache_path,
@@ -20,15 +25,19 @@ from clustering_MRSW import (
     top_bands_by_album_count,
     swear_path,
 )
-from metalness_loader import load_metalness_df
-from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
+from utils.metalness_loader import load_metalness_df
+from analysis.process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 
+
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def load_cached_or_source_data(filepath: str | None) -> pd.DataFrame:
     if os.path.exists(csv_cache_path) and filepath is None:
         print(f"[INFO] Loading cached data from '{csv_cache_path}'...")
         return pd.read_csv(csv_cache_path)
-    filepath = filepath or "data/dataset.json"
+    filepath = filepath or os.path.join(_get_project_root(), "data", "dataset.json")
     print("[INFO] Cache not found or custom file provided. Loading from JSON...")
     songs_df = load_music_data_with_lyrics(filepath)
     songs_df.to_csv(csv_cache_path, index=False)
@@ -96,23 +105,32 @@ def main() -> None:
     parser.add_argument(
         "-o",
         "--output",
-        default="output_pics",
+        default=None,
         help="Directory to save the clustering visuals.",
     )
     parser.add_argument(
         "-g",
         "--genres",
-        default="data/bands_genres_cleaned.json",
+        default=None,
         help="Path to the JSON file mapping artists to genres.",
     )
     parser.add_argument(
         "-l",
         "--labels-output",
-        default="output_data/cluster_labels.csv",
+        default=None,
         help="Path where the generated labels summary should be saved.",
     )
 
     args = parser.parse_args()
+    project_root = _get_project_root()
+
+    # Set default paths if not provided
+    if args.genres is None:
+        args.genres = os.path.join(project_root, "data", "bands_genres_cleaned.json")
+    if args.labels_output is None:
+        args.labels_output = os.path.join(project_root, "output_data", "cluster_labels.csv")
+    if args.output is None:
+        args.output = os.path.join(project_root, "output_pics")
 
     swears = load_list(swear_path)
     songs_df = load_cached_or_source_data(args.filepath)

@@ -1,21 +1,30 @@
 #!/usr/bin/python3
-from process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
+import sys
+import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from analysis.process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
 import pandas as pd
-from metalness_loader import load_metalness_df
+from utils.metalness_loader import load_metalness_df
 
 import matplotlib.pyplot as plt
-import os
 import nltk
 from nltk import tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.data import find
 from tqdm import tqdm
 
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 try:
-    metal_df = pd.read_csv("cache/lyrics_data.csv")
+    metal_df = pd.read_csv(os.path.join(_get_project_root(), "cache", "lyrics_data.csv"))
 except FileNotFoundError:
     print("Warning: Metal dataset not found. Creating cache")
-    metal_df = load_music_data_with_lyrics("data/dataset.json")
+    metal_df = load_music_data_with_lyrics(os.path.join(_get_project_root(), "data", "dataset.json"))
 
 
 def compute_songs_metalness_from_lyrics(lyrics, metal_dict):
@@ -30,8 +39,9 @@ def compute_songs_metalness_from_lyrics(lyrics, metal_dict):
 
     return sum(scores) / len(scores)
 
+project_root = _get_project_root()
 try:
-    words_metalness_df = pd.read_csv("output_data/words_metalness.csv")
+    words_metalness_df = pd.read_csv(os.path.join(project_root, "output_data", "words_metalness.csv"))
     metal_dict = dict(zip(words_metalness_df["words"].str.lower(), words_metalness_df["metalness"]))
     metal_df["metalness"] = metal_df["lyrics"].fillna("").apply(
         lambda x: compute_songs_metalness_from_lyrics(x, metal_dict))
@@ -39,13 +49,13 @@ except FileNotFoundError:
     print("Warning: Words metalness dataset not found. Please compute process_worldcloud_metalness.")
 
 try:
-    non_metal_df = pd.read_csv("cache/non_metal_lyrics.csv", dtype=str)
+    non_metal_df = pd.read_csv(os.path.join(project_root, "cache", "non_metal_lyrics.csv"), dtype=str)
 except FileNotFoundError:
     print("Warning : Non Metal dataset not found. Please create or load a new one.")
     non_metal_df = pd.DataFrame(columns=["Lyric", "language"])
 
 try:
-    hedonometer_df = pd.read_csv("cache/hedonometer.csv")
+    hedonometer_df = pd.read_csv(os.path.join(project_root, "cache", "hedonometer.csv"))
 except FileNotFoundError:
     print("Warning : Hedonometer dataset not found. Please make sure to load it.")
     hedonometer_df = pd.DataFrame(columns=["Word", "Happiness Score", "Word in English"])
@@ -307,7 +317,7 @@ if __name__ == "__main__":
     print(happiness_df.tail(20))
 
     ensure_nltk_resources()
-    cache_path = "cache/lyrics_with_sentiment.csv"
+    cache_path = os.path.join(_get_project_root(), "cache", "lyrics_with_sentiment.csv")
     if os.path.exists(cache_path):
         print("Loading cached sentiment data...")
         metal_with_sent = pd.read_csv(cache_path)

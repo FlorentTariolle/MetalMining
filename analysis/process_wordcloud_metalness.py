@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+import sys
+import os
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
-import os
 from wordcloud import WordCloud
-from analyzer import LANGUAGE_MAP
+from analysis.analyzer import LANGUAGE_MAP
 import argparse
 import numpy as np
 from tqdm import tqdm
@@ -21,11 +25,15 @@ import string
 import pandas as pd
 import matplotlib.pyplot as plt
 
-csv_cache_path = "cache/lyrics_data.csv"
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+csv_cache_path = os.path.join(_get_project_root(), "cache", "lyrics_data.csv")
 
 # Load non-metal dataset if it exists, otherwise create empty DataFrame
 try:
-    non_metal_dataset = pd.read_csv("cache/non_metal_lyrics.csv")
+    non_metal_dataset = pd.read_csv(os.path.join(_get_project_root(), "cache", "non_metal_lyrics.csv"))
 except FileNotFoundError:
     print("Warning: Non-metal dataset not found. Creating empty dataset.")
     non_metal_dataset = pd.DataFrame(columns=['Lyric', 'language'])
@@ -79,7 +87,7 @@ def load_music_data_with_lyrics(filepath='data/dataset.json'):
     return df_songs
 
 
-STOPWORDS = list(set([str(line.rstrip('\n')) for line in open("resources/stopwords_eng.txt", "r")]))
+STOPWORDS = list(set([str(line.rstrip('\n')) for line in open(os.path.join(_get_project_root(), "resources", "stopwords_eng.txt"), "r")]))
 PUNCTUATION = list(string.punctuation) + ['..', '...', '’', "''", '``', '`']
 
 def drop_songs_with_no_lyrics(dataframe):
@@ -197,7 +205,7 @@ def plot_word_cloud_Debauchery(dataframe):
     Debauchery_word_freq_dist = get_word_frequence_distribution(Debauchery_songs, text_column='lyrics')
     plot_word_cloud(Debauchery_word_freq_dist)
     print(Debauchery_word_freq_dist.most_common(20))
-    plt.savefig("output_pics/Debauchery_wordcloud.png", bbox_inches='tight')
+    plt.savefig(os.path.join(_get_project_root(), "output_pics", "Debauchery_wordcloud.png"), bbox_inches='tight')
 
 def compute_metalness(wfd_metal, wfd_non_metal):
     no_metal_wfd = {k:v for k,v in wfd_non_metal.items() if v >= 5}
@@ -239,27 +247,30 @@ if __name__ == "__main__":
         df_songs = pd.read_csv(csv_cache_path)
     else:
         print("[INFO] Cache not found or custom file provided. Loading from JSON...")
-        filepath = args.filepath if args.filepath is not None else 'data/dataset.json'
+        project_root = _get_project_root()
+        filepath = args.filepath if args.filepath is not None else os.path.join(project_root, 'data', 'dataset.json')
         df_songs = load_music_data_with_lyrics(filepath)
         df_songs.to_csv(csv_cache_path, index=False)
         print(f"[INFO] Data cached to '{csv_cache_path}'")
 
     # Create output directories if they don't exist
-    os.makedirs("output_data", exist_ok=True)
-    os.makedirs("output_pics", exist_ok=True)
+    project_root = _get_project_root()
+    os.makedirs(os.path.join(project_root, "output_data"), exist_ok=True)
+    os.makedirs(os.path.join(project_root, "output_pics"), exist_ok=True)
     
     df_metal_songs = process_metal_songs(df_songs)
     df_non_metal_songs = process_non_metal_songs(non_metal_dataset)
     metal_word_freq_dist = get_word_frequence_distribution(df_metal_songs, text_column='lyrics')
     non_metal_word_freq_dist = get_word_frequence_distribution(df_non_metal_songs, text_column='Lyric')
     words_metalness_df = compute_metalness(metal_word_freq_dist, non_metal_word_freq_dist).sort_values(by='metalness', ascending=False).reset_index().drop(columns='index')
-    words_metalness_df.to_csv("output_data/words_metalness.csv")
+    project_root = _get_project_root()
+    words_metalness_df.to_csv(os.path.join(project_root, "output_data", "words_metalness.csv"))
     words_metalness_top100 = words_metalness_df.head(100)
     words_metalness_bot100 = words_metalness_df.tail(100)
-    words_metalness_top100.to_csv("output_data/words_metalness_top100.csv")
-    words_metalness_bot100.to_csv("output_data/words_metalness_bot100.csv")
+    words_metalness_top100.to_csv(os.path.join(project_root, "output_data", "words_metalness_top100.csv"))
+    words_metalness_bot100.to_csv(os.path.join(project_root, "output_data", "words_metalness_bot100.csv"))
     plot_word_cloud(metal_word_freq_dist, args.output)
-    plot_word_cloud(non_metal_word_freq_dist, "output_pics/non_metal_wordcloud.png")
+    plot_word_cloud(non_metal_word_freq_dist, os.path.join(project_root, "output_pics", "non_metal_wordcloud.png"))
     plot_word_cloud_Debauchery(df_metal_songs)
 
 

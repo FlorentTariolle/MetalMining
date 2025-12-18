@@ -4,10 +4,15 @@ Script to extract the top 50 bands by song count from the dataset.
 """
 
 import json
+import os
 import pandas as pd
 import argparse
 
-DEFAULT_JSON = "data/dataset.json"
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DEFAULT_JSON = os.path.join(_get_project_root(), "data", "dataset.json")
 TOP_N = 100
 
 

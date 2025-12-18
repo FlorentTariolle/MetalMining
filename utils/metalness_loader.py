@@ -3,9 +3,13 @@ from typing import Iterable, List
 
 import pandas as pd
 
+def _get_project_root():
+    """Get project root directory."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 METALNESS_CANDIDATE_PATHS: List[str] = [
-    "output_data/metalness.csv",
-    "output_data/words_metalness.csv",
+    os.path.join(_get_project_root(), "output_data", "metalness.csv"),
+    os.path.join(_get_project_root(), "output_data", "words_metalness.csv"),
 ]
 
 
@@ -49,7 +53,7 @@ def load_metalness_df(candidate_paths: Iterable[str] = None) -> pd.DataFrame:
 
     raise FileNotFoundError(
         "Metalness data not found in any of the expected locations "
-        f"{paths_to_try}. Run `python process_wordcloud_metalness.py -f data/dataset.json -o output_pics` "
+        f"{paths_to_try}. Run `python -m analysis.process_wordcloud_metalness -f data/dataset.json -o output_pics` "
         "to regenerate the word metalness scores."
     )
 

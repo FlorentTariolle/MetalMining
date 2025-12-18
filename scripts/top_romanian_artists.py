@@ -3,55 +3,23 @@
 Script to list the top 10 Romanian artists by song count.
 """
 
-import json
+import sys
 import os
-import pandas as pd
 import argparse
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from data_loading import load_music_data
+
 
 def _get_project_root():
     """Get project root directory."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-def load_music_data(filepath=None):
-    if filepath is None:
-        filepath = os.path.join(_get_project_root(), 'data', 'dataset.json')
-    """Load and process music data from JSON file"""
-    
-    with open(filepath, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    # Handle nested dataset structure
-    if 'dataset' in data and 'dataset' in data['dataset']:
-        # Double nested: {"dataset": {"dataset": {...}}}
-        dataset = data['dataset']['dataset']
-    elif 'dataset' in data:
-        # Single nested: {"dataset": {...}}
-        dataset = data['dataset']
-    else:
-        # Direct structure: {...}
-        dataset = data
-    
-    songs_data = []
-    
-    for artist_name, artist_info in dataset.items():
-        for album_name, album_info in artist_info['albums'].items():
-            for song in album_info['songs']:
-                # Language is stored as language code (e.g., 'ro' for Romanian)
-                language = song.get('language', 'unknown')
-                songs_data.append({
-                    'artist': artist_name,
-                    'album': album_name,
-                    'song': song['title'],
-                    'language': language
-                })
-    
-    df_songs = pd.DataFrame(songs_data)
-    return df_songs
-
 def get_top_romanian_artists(df_songs, top_n=10):
     """Get top N Romanian artists by song count."""
-    # Filter for Romanian songs (language code 'ro')
-    romanian_songs = df_songs[df_songs['language'] == 'ro'].copy()
+    # Filter for Romanian songs (language code 'ro' is converted to 'Romanian' by load_music_data)
+    romanian_songs = df_songs[df_songs['language'] == 'Romanian'].copy()
     
     if len(romanian_songs) == 0:
         print("No Romanian songs found in the dataset.")
@@ -79,7 +47,9 @@ def main():
     print("Loading dataset...")
     if args.filepath is None:
         args.filepath = os.path.join(_get_project_root(), 'data', 'dataset.json')
-    df_songs = load_music_data(args.filepath)
+    
+    # load_music_data returns (df_songs, df_albums) tuple, we only need the songs
+    df_songs, _ = load_music_data(args.filepath)
     
     print("Analyzing Romanian artists...")
     result = get_top_romanian_artists(df_songs, args.top)

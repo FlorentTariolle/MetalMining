@@ -74,7 +74,7 @@ def tf_idf(tf_corpus, idf_corpus):
 
 
 
-def optics_clustering(data, xi=0.05, metric='cosine'):
+def optics_clustering(data, min_samples=2, xi=0.05, metric='cosine'):
     """
     Clustering des données avec OPTICS.
 
@@ -86,7 +86,7 @@ def optics_clustering(data, xi=0.05, metric='cosine'):
         les labels des données
     """
 
-    optics = OPTICS(xi=xi, metric=metric)
+    optics = OPTICS(min_samples=min_samples, xi=xi, metric=metric)
     optics.fit(data)
     return optics.labels_
 
@@ -120,7 +120,7 @@ def kmeans_clustering(data, n_clusters=np.arange(3,11), return_scores: bool=True
         output_path = "output_pics/" + fig_name + ".png"
         plt.plot(n_clusters, scores)
         plt.grid()
-        plt.title("Score de silhouette des clusterings KMeans")
+        plt.title("Scores de silhouette des clusterings KMeans")
         plt.xlabel("nombre de clusters")
         plt.ylabel("score")
         plt.savefig(output_path, bbox_inches='tight')
@@ -168,9 +168,9 @@ def plot(embedding, labels, artists, fig_name):
     
     plt.figure(figsize=(10,10))
     scatter = plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
-    plt.title("Visualisation UMAP des artists en fonction de leur metallitude")
-    plt.xlabel("axe 1")
-    plt.ylabel("axe 2")
+    plt.title("Clustering des artists sur la matrice tf-idf")
+    plt.xlabel("axe UMAP 1")
+    plt.ylabel("axe UMAP 2")
     for idx, artist in enumerate(artists):
         plt.text(embedding[idx, 0] + 0.1, embedding[idx, 1] + 0.05, artist, fontsize=8)
 

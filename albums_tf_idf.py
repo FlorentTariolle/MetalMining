@@ -72,7 +72,7 @@ def tf_idf(tf_corpus, idf_corpus):
 
 
 
-def optics_clustering(data, xi=0.05, metric='cosine', min_cluster_size=0.1):
+def optics_clustering(data, min_samples=3, xi=0.05, metric='cosine', min_cluster_size=0.1):
     """
     Clustering des données avec OPTICS.
 
@@ -84,13 +84,13 @@ def optics_clustering(data, xi=0.05, metric='cosine', min_cluster_size=0.1):
         les labels des données
     """
 
-    optics = OPTICS(xi=xi, metric=metric, min_cluster_size=min_cluster_size)
+    optics = OPTICS(min_samples=min_samples, xi=xi, metric=metric, min_cluster_size=min_cluster_size)
     optics.fit(data)
     return optics.labels_
 
 
 
-def kmeans_clustering(data, n_clusters=np.arange(2,11), return_scores: bool=True, fig_name="KMeans_scores"):
+def kmeans_clustering(data, n_clusters=np.arange(2,16), return_scores: bool=True, fig_name="KMeans_scores"):
     """
     Clustering des données avec KMeans.
 
@@ -118,7 +118,7 @@ def kmeans_clustering(data, n_clusters=np.arange(2,11), return_scores: bool=True
         output_path = "output_pics/" + fig_name + ".png"
         plt.plot(n_clusters, scores)
         plt.grid()
-        plt.title("Score de silhouette des clusterings KMeans")
+        plt.title("Scores de silhouette des clusterings KMeans")
         plt.xlabel("nombre de clusters")
         plt.ylabel("score")
         plt.savefig(output_path, bbox_inches='tight')
@@ -166,9 +166,9 @@ def plot(embedding, labels, albums, fig_name):
     
     plt.figure(figsize=(10,10))
     scatter = plt.scatter(embedding[:, 0], embedding[:, 1], c=labels)
-    plt.title("Visualisation UMAP des artists en fonction de leur metallitude")
-    plt.xlabel("axe 1")
-    plt.ylabel("axe 2")
+    plt.title("Clustering des albums sur la matrice tf-idf")
+    plt.xlabel("axe UMAP 1")
+    plt.ylabel("axe UMAP 2")
 
     # Clean album names to remove dollar signs that break matplotlib
     for i, album in enumerate(albums):
@@ -198,7 +198,7 @@ if __name__ == "__main__" :
     parser = ArgumentParser(description="parser")
     parser.add_argument("-f", "--figname", default="tf-idf_on_albums", help = "name of the output figure")
     parser.add_argument("-c", "--clustering", default=None, help = "the method of clustering : {'OPTICS', 'Kmeans'}")
-    parser.add_argument("-a", "--artists", default=20, help = "the artists of whose to compute the albums")
+    parser.add_argument("-a", "--artists", default=5, help = "the artists of whose to compute the albums")
     args = parser.parse_args()
 
     # sélection des artistes

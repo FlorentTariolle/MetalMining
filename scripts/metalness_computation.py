@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Example script: Word cloud generation and metalness computation.
+Word cloud generation and metalness computation.
 
-This script demonstrates how to use the refactored modules to generate
-word clouds and compute metalness scores based on word frequencies.
+Generates word clouds and computes metalness scores based on word frequencies.
 """
 
 import argparse

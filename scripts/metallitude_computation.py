@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Example script: TF-IDF based metallitude computation.
+TF-IDF based metallitude computation.
 
-This script demonstrates how to use the refactored modules to compute
-metallitude scores using TF-IDF approach (TF on Metal, IDF on Non-Metal).
+Computes metallitude scores using TF-IDF approach (TF on Metal, IDF on Non-Metal).
 """
 
 import argparse

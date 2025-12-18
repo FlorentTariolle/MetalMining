@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Example script: Sentiment analysis with metalness and emotional arcs.
+Sentiment analysis with metalness and emotional arcs.
 
-This script demonstrates how to use the refactored modules to analyze
-sentiment, metalness, and emotional progression of artists.
+Analyzes sentiment, metalness, and emotional progression of artists.
 """
 
 import sys

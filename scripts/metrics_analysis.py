@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Example script: Metrics analysis (swear words, readability, stupidity curve).
+Metrics analysis: swear words, readability, and stupidity curves.
 
-This script demonstrates how to use the refactored modules to analyze
-swear word ratios, readability scores, and their relationships.
+Analyzes swear word ratios, readability scores, and their relationships.
 """
 
 import argparse

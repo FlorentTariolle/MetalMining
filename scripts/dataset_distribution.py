@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Example script: Dataset distribution analysis.
+Dataset distribution analysis.
 
-This script demonstrates how to use the refactored modules to analyze
-the distribution of songs, albums, and languages in the metal dataset.
+Analyzes the distribution of songs, albums, and languages in the metal dataset.
 """
 
 import sys

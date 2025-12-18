@@ -13,7 +13,7 @@ matplotlib.rcParams['text.usetex'] = False
 import umap
 import re
 from utils.metalness_loader import load_metalness_df
-from analysis.process_wordcloud_metalness import load_music_data_with_lyrics
+from data_loading import load_music_data_with_lyrics
 import nltk
 from nltk.corpus import stopwords
 # Setup stopwords to match the filtering in tf_idf.py

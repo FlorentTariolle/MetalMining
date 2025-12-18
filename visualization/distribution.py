@@ -1,101 +1,22 @@
-#!/usr/bin/env python3
-"""
-Script to analyze the lyrics distribution of the metal music dataset, following the guidance of the first article of the Medium.
-"""
+"""Visualization functions for dataset distribution analysis."""
 
-import json
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Language code to name mapping
-LANGUAGE_MAP = {
-    'en': 'English',
-    'es': 'Spanish',
-    'fr': 'French',
-    'de': 'German',
-    'it': 'Italian',
-    'ro': 'Romanian',
-    'pt': 'Portuguese',
-    'nl': 'Dutch',
-    'pl': 'Polish',
-    'ru': 'Russian',
-    'tr': 'Turkish',
-    'ja': 'Japanese',
-    'zh': 'Chinese',
-    'ko': 'Korean',
-    'ar': 'Arabic',
-    'sv': 'Swedish',
-    'fi': 'Finnish',
-    'cs': 'Czech',
-    'hu': 'Hungarian',
-    'el': 'Greek',
-    'ca': 'Catalan',
-    'no': 'Norwegian',
-    'sl': 'Slovenian',
-    'hr': 'Croatian'
-}
-
-def load_music_data(filepath='data/dataset.json'):
-    """Load and process music data from JSON file"""
-    
-    with open(filepath, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    # Handle nested dataset structure
-    if 'dataset' in data and 'dataset' in data['dataset']:
-        # Double nested: {"dataset": {"dataset": {...}}}
-        dataset = data['dataset']['dataset']
-    elif 'dataset' in data:
-        # Single nested: {"dataset": {...}}
-        dataset = data['dataset']
-    else:
-        # Direct structure: {...}
-        dataset = data
-    
-    songs_data = []
-    
-    for artist_name, artist_info in dataset.items():
-        for album_name, album_info in artist_info['albums'].items():
-            release_year = album_info.get('release_year', 'Unknown')
-            for song in album_info['songs']:
-                lyrics = song.get('lyrics', '').strip()
-                has_lyrics = bool(lyrics) and len(lyrics) >= 5
-                # Language is now pre-calculated in the dataset
-                language = song.get('language', 'unknown')
-                # Convert language code to readable name if needed
-                language = LANGUAGE_MAP.get(language, language) if language != 'unknown' else 'Unknown'
-                songs_data.append({
-                    'artist': artist_name,
-                    'album': album_name,
-                    'song': song['title'],
-                    'release_year': release_year,
-                    'has_lyrics': has_lyrics,
-                    'lyrics_status': 'With Lyrics' if has_lyrics else 'Without Lyrics',
-                    'language': language
-                })
-    
-    df_songs = pd.DataFrame(songs_data)
-    
-    album_types = []
-    
-    for artist_name, artist_info in dataset.items():
-        for album_name, album_info in artist_info['albums'].items():
-            album_type = album_info.get('album_type', 'Unknown')
-            if album_type.lower() == 'demo':
-                album_type = 'Demo'
-            elif album_type.lower() == 'album':
-                album_type = 'Album'
-            album_types.append(album_type)
-    
-    df_albums = pd.DataFrame({'album_type': album_types})
-    
-    return df_songs, df_albums
 
 
-def analyze_lyrics_distribution(df_songs, df_albums):
-    """Analyze and visualize the distribution of music with and without lyrics"""
+def analyze_lyrics_distribution(df_songs: pd.DataFrame, df_albums: pd.DataFrame):
+    """
+    Analyze and visualize the distribution of music with and without lyrics.
     
+    Creates multiple visualizations:
+    - Pie chart: With vs Without Lyrics
+    - Pie chart: Publication Types
+    - Bar chart: Top 10 bands by song count
+    - Bar chart: Top 10 bands by album count
+    - Bar chart: Distribution of songs over the years
+    - Pie chart: Language distribution (Top 4 + Other)
+    - Table: Top 20 languages
+    """
     # With vs Without Lyrics
     plt.figure(figsize=(8, 6))
     lyrics_counts = df_songs['lyrics_status'].value_counts()
@@ -197,8 +118,3 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.show()
     
     return df_songs, df_albums
-
-
-if __name__ == "__main__":
-    df_songs, df_albums = load_music_data()
-    analyze_lyrics_distribution(df_songs, df_albums)

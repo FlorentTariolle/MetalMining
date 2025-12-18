@@ -20,7 +20,7 @@ from sklearn.metrics import silhouette_score
 
 from argparse import ArgumentParser
 
-from analysis.process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
+from data_loading import load_music_data_with_lyrics, process_metal_songs
 
 
 

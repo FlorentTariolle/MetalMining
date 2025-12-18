@@ -16,7 +16,7 @@ from collections import Counter
 
 import pandas as pd
 
-from analysis.analyzer2 import load_list
+from metrics import load_list
 from clustering.clustering_MRSW import (
     calculate_metrics,
     cluster_artists,
@@ -26,7 +26,7 @@ from clustering.clustering_MRSW import (
     swear_path,
 )
 from utils.metalness_loader import load_metalness_df
-from analysis.process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
+from data_loading import load_music_data_with_lyrics, process_metal_songs
 
 
 def _get_project_root():

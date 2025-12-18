@@ -9,10 +9,10 @@ import re
 from argparse import ArgumentParser
 import pandas as pd
 
-from analysis.analyzer3 import hedonometer_df, words_happiness
+from metrics.sentiment import words_happiness
 from utils.metalness_loader import load_metalness_df
 from sklearn.metrics import adjusted_rand_score
-from analysis.process_wordcloud_metalness import load_music_data_with_lyrics, process_metal_songs
+from data_loading import load_music_data_with_lyrics, process_metal_songs
 from clustering.albums_clustering import calculate_average_metalness
 import matplotlib.pyplot as plt
 from sklearn.cluster import OPTICS
@@ -20,7 +20,8 @@ import umap
 import nltk
 from nltk.corpus import stopwords
 from sklearn.preprocessing import StandardScaler
-from analysis.analyzer2 import compute_song_metrics, load_list
+from metrics import compute_song_metrics, load_list
+import pandas as pd
 
 def _get_project_root():
     """Get project root directory."""
@@ -38,10 +39,13 @@ except LookupError:
 extra_tokens_to_remove = {'ve', 'dont', 'll', 'nt'}
 custom_stopwords = base_stopwords.union(extra_tokens_to_remove)
 
-try:
-    hedonometer_df = pd.read_csv(os.path.join(_get_project_root(), "cache", "hedonometer.csv"))
-except FileNotFoundError:
-    print("File not found. Please load the file and retry")
+def get_hedonometer_df():
+    """Load hedonometer dataset."""
+    try:
+        return pd.read_csv(os.path.join(_get_project_root(), "cache", "hedonometer.csv"))
+    except FileNotFoundError:
+        print("File not found. Please load the file and retry")
+        return pd.DataFrame(columns=["Word", "Happiness Score", "Word in English"])
 
 def top_bands_by_album_count(df: pd.DataFrame, top_bands: int):
     top_artists_list = df.groupby('artist')['album'].nunique().nlargest(top_bands).index
@@ -268,6 +272,7 @@ if __name__ == "__main__":
         print(f"[INFO] Data cached to '{csv_cache_path}'")
     metal_df = process_metal_songs(metal_songs)
     metalness_df = load_metalness_df()
+    hedonometer_df = get_hedonometer_df()
     happiness_df = words_happiness(metalness_df, hedonometer_df)
     happiness_df = happiness_df.rename(columns = {"Happiness Score" : "happiness"})
     print(happiness_df.head(20))

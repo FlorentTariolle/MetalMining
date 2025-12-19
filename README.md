@@ -121,7 +121,7 @@ Most scripts support command-line arguments for customizing input paths and para
 
 ## Detailed Documentation
 
-For complete details on methodology, results, visualizations, and conclusions, see **[ANALYSIS.md](ANALYSIS.md)**.
+For complete details on methodology, results, visualizations, and conclusions, see **[DOCUMENTATION.md](DOCUMENTATION.md)**.
 
 ## Credits
 

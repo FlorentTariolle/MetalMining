@@ -1,8 +1,12 @@
-# Detailed Analysis - PAO Metal Mining
+# **PAO Metal Mining**
 
-Complete documentation of the methodology, results, and analyses of the project.
+**PAO Metal Mining** is a project dedicated to large-scale analysis of metal music lyrics.
 
-**Note:** "PAO" is a French acronym for "Projet d'Approfondissement et d'Ouverture" (Deepening and Opening Project), which is a school project at INSA Rouen.
+The objective is to examine vocabulary, themes, emotions, and stylistic evolutions of metal through a sufficiently large and representative corpus of songs.
+
+The project follows an exploratory approach: understanding what lyrics reveal about the genre, how they vary according to groups or eras, and what trends appear when applying textual analysis methods.
+
+The entire work is based on setting up a complete pipeline from text collection to the production of visualizations and linguistic indicators.
 
 # **I Data Collection (Scraping)**
 
@@ -54,127 +58,111 @@ The final dataset (`data/dataset.json`) contains for each song:
 
 This file forms the basis for all analysis steps.
 
-# II Descriptive Analysis of the Corpus
+## **D. Analysis of Retrieved Data**
 
-## 1. Lyrics Presence and Dataset Structure
+In order to understand the dataset obtained from our scraping, we performed several visualizations. This allowed us to discover a problem that would have skewed our future experiments: songs with "INSTRUMENTAL" as their only lyric content (songs without lyrics where the scraping retrieved only this single word) were being detected as Romanian songs by langdetect (which uses a Bayesian estimator). To work around this type of problem, we added a threshold of 5 words: below this threshold, a song is considered to have no lyrics.
 
-Before starting textual analyses, we evaluated the completeness of the dataset.
+![Dataset structure](outputs/1.png)
 
-The vast majority of titles have their lyrics, which guarantees the reliability of the linguistic measures that follow. The publication structure also shows a clear predominance of albums, while EPs and demos remain in the minority.
+![Publication types](outputs/2.png)
 
-![image.png](attachment:11f1a84d-dca2-4039-98f4-f882fa4d461d:image.png)
+![Artist distribution](outputs/3.png)
 
-![image.png](attachment:340d1107-99cb-4430-b8c3-9b5ec5e4c30f:image.png)
+![Album distribution](outputs/4.png)
 
-These initial results confirm that the corpus is sufficiently rich and coherent to conduct all planned analyses.
+![Temporal evolution](outputs/5.png)
 
-### 2. Distribution of Artists and Albums
+![Language distribution](outputs/6.png)
 
-We then studied the distribution of the corpus by artist and by album to identify the most represented groups.
+![Language pie chart](outputs/7.png)
 
-![image.png](attachment:c45e053b-a081-42dc-9ef8-504789d4467a:image.png)
+The language distribution is consistent with the Metal world; the dataset does not appear to be biased at first glance.
 
-![image.png](attachment:1c98e75c-8de5-498b-be18-67ee9b4497ef:image.png)
+# II Readability and Lexical Complexity Analysis
 
-Artists like **Judas Priest**, **Alice Cooper**, **Rage**, **Motörhead**, or **Napalm Death** appear particularly prolific, reflecting their longevity and the importance of their discography in metal history.
+This axis focuses on the structural and semantic analysis of lyrics to evaluate their linguistic complexity. We seek to quantify the language level via standardized readability metrics and to study the correlation between profanity (use of swear words) and syntactic simplicity.
 
-## 3. Temporal Evolution of Production
+## A. Simplified Data Preprocessing
 
-The analysis by release year shows a progressive growth in the number of songs since the late 1970s, followed by a major peak between 2000 and 2015.
+Before any measurement, standardized cleaning is applied to the lyrics via the `_prep_text` function from our script. This process consists of three elementary actions:
 
-This dynamic corresponds to the expansion of metal subgenres and the rise of digital distribution platforms.
+1. **Lowercase:** Case uniformization.
+2. **Cleaning:** Replacement of line breaks by spaces.
+3. **Filtering:** Complete removal of punctuation.
 
-![image.png](attachment:32f22caf-3ee4-435d-834c-47af9fc63c2f:image.png)
+This minimalist treatment allows keeping only raw words to guarantee the reliability of ratio calculations.
 
-## 4. Language Distribution
+## B. Metric Formulation
 
-The majority of songs in the corpus are in English, which is consistent with the central place of this language in the international metal scene. The "Unknown" category (6.2%) mainly groups titles whose language could not be automatically determined, often due to insufficient information.
+To characterize the texts, three mathematical indicators were implemented:
 
-Other languages present—such as German, Spanish, or Finnish—appear in reduced proportions but testify to the activity of several national scenes, particularly in Europe.
+### 1. Swear Word Ratio
 
-![image.png](attachment:c9568806-01a2-44dd-8e31-df893e6f1c3c:image.png)
+This ratio measures the proportion of swear words in a song by comparing each word to a reference dictionary (`swear_words_eng.txt`).
 
-![image.png](attachment:eb16a238-4182-4d23-b8a2-b0f51bfe2d89:90a25ecb-58aa-4415-b580-57d653235dfb.png)
+![Swear word ratio formula](outputs/8.png)
 
-# III Linguistic and Stylistic Analysis of Metal
+### 2. Coleman–Liau Readability Index
 
-The linguistic analysis relies on four complementary indicators to characterize the language and style of lyrics.
+To evaluate complexity, we use the Coleman–Liau Index (CLI). Unlike methods based on syllables, this index uses the number of characters, which is more precise for automated computational processing. It estimates the school level necessary to understand the text (e.g., a score of 12 corresponds to a senior high school level in the USA).
 
-1. **Swear word ratio**
+![Coleman-Liau formula](outputs/9.png)
 
-   Proportion of profane words in a song.
+### 3. Proportion of "Simple Songs" (Stupidity Metric)
 
-   It highlights the use of an aggressive, direct, or provocative register.
+A song is defined as "simple" (or "stupid" in the context of the study) if its readability index is less than or equal to 3 (elementary school level). We calculate the probability that a song is simple as a function of its profanity rate.
 
-2. **Coleman–Liau Readability Index**
+![Stupidity metric formula](outputs/10.png)
 
-   Readability index based on average word and sentence length.
+## C. Results and Interpretation
 
-   A high score indicates more complex and structured lyrics.
+The application of these metrics to our English corpus allows us to identify the following trends.
 
-   ![image.png](attachment:90f2ec1e-672f-4427-9d93-8667ec1b3b0d:image.png)
+### 1. Analysis of Extremes by Artist
 
-3. **Proportion of "stupid songs"**
+![Extreme artists rankings](outputs/11.png)
 
-   Category from the reference dataset, grouping tracks considered very simple or basic in their writing.
+_Rankings of the 10 artists with the highest profanity rate and the highest readability scores_
 
-   It allows identifying songs whose textual content is minimal or very underdeveloped.
+The analysis of the above tables highlights a clear dichotomy within the genre:
 
-4. **Metalness**
+- **Lexical Complexity:** Some groups develop texts of great richness. The group _Malignancy_ reaches an average score of **18.6**, indicating a superior university-level language. Groups like _Botanist_ (17.1) or _Carcass_ (12.7) confirm the existence of a "learned Metal" using technical or dense narrative vocabulary.
+- **Profanity Density:** On the opposite end, groups at the top of the profanity ranking, like _Meat Shits_ (11.2% swear words) or _Barbatos_ (7.4%), dedicate a significant part of their lexicon to swear words, which mechanically reduces the space available for complex vocabulary.
 
-   The Metalness metric is a normalized measure that evaluates how specific a word is to the "Metal" corpus compared to the "Non-Metal" corpus.
+### 2. Temporal Evolution
 
-   It relies on comparing word occurrence frequencies in both datasets. Calculation details are presented in [6. Metalness](https://www.notion.so/6-Metalness-2cc87cb0143d806b8548e25e7f88a518?pvs=21)
+![Readability evolution](outputs/12.png)
 
-These four measures form the basis of the linguistic and stylistic analysis of the corpus.
+_Evolution of the average Coleman–Liau readability index by year_
 
-## **1. Profanity and Complexity: Two Unrelated Dimensions**
+The longitudinal analysis of readability reveals a trend toward intellectualization of the genre. Starting from an average index around **6** (middle school level) in the 1970s, text complexity experienced regular growth to stabilize above **8** (high school level) in the 2020s. Metal has therefore not become textually impoverished over time.
 
-The scatter plot shows that swear word ratio and readability index do not evolve together.
+![Profanity evolution](outputs/13.png)
 
-We observe very profane artists with relatively structured lyrics, others very simple with little or no profanity, and a majority grouped in an intermediate zone.
+_Evolution of the average profanity ratio by year_
 
-![image.png](attachment:dcbb4b14-4260-4e80-8e51-6e607ab2677c:image.png)
+In parallel, the profanity ratio remains globally marginal (below 1% on average). However, we observe high volatility and a notable peak in the early 1990s, a period corresponding to the emergence of more aggressive subgenres (Nu-Metal, influence of Gangsta Rap), before declining.
 
-In our corpus, high Coleman–Liau values do not describe true literary complexity: they rather correspond to slightly denser writing, often equivalent to a school level between **end of middle school and beginning of high school**.
+### 3. Correlation: Profanity vs Complexity
 
-In other words, the "most complex" texts in the dataset remain accessible, but they contain more words per sentence or a slightly more developed vocabulary.
+![Profanity vs complexity scatter](outputs/14.png)
 
-This observation confirms that profanity is not an indicator of quality or writing level: it relates to a stylistic choice specific to certain extreme subgenres.
+_Scatter plot crossing profanity ratio and readability score by artist_
 
-## **2. The Extremes of the Linguistic Spectrum**
+This graph projects each artist according to their two scores. We observe a massive concentration (the "heart" of the genre) in a zone of low profanity and average readability (score 6-10).
+Notable fact: points located highest on the vertical axis (high profanity > 0.03) are almost systematically on the left of the horizontal axis (low readability). This visually suggests that intensive use of swear words is accompanied by syntactic simplification.
 
-![image.png](attachment:4f9f4a7b-9436-4210-853d-a05290503f3c:82acaf95-2cad-49a5-925f-6befcb2b22e2.png)
+### 4. The "Simplicity" Curve
 
-The results show two opposite profiles.
+![Simplicity curve](outputs/15.png)
 
-The highest swear word ratios are found in bands like _Meat Shits_, _Anal Cunt_, or _Barbatos_, characterized by very direct texts and simple structure.
+_Proportion of songs considered "simple" as a function of profanity ratio_
 
-Conversely, the highest readability scores appear in _Cynic_, _Dissection_, _Botanist_, or _Dark Tranquillity_, whose lyrics present on average longer sentences and more varied vocabulary.
+To mathematically confirm the previous observation, this curve shows the probability that a song is "simple" (CLI ≤ 3) as a function of its profanity.
+The result is clear: the correlation is quasi-linear and positive.
 
-## **3. Evolution of Swear Word Ratio**
-
-![image.png](attachment:84a24bf5-4c6f-4a8c-bff4-70bca6a9a59a:image.png)
-
-The evolution of swear word ratio shows a clear dynamic. We observe a regular progression between the late 1970s and the mid-1990s, a period corresponding to the appearance and structuring of several subgenres characterized by a more profane register.
-
-From the 2000s onwards, values stabilize around a constant level, with no upward or downward trend.
-
-These results indicate that the use of profane terms has established itself as a characteristic specific to certain segments of the genre, while remaining stable at the global corpus scale.
-
-## **4. General Trends in Readability and Textual Simplicity**
-
-![image.png](attachment:7c8276d0-bcc4-4a37-a17e-d91d954a486b:image.png)
-
-The readability index shows a slight increase over time. Values remain globally compatible with a level between middle school and beginning of high school, which indicates that texts do not become truly complex, but show a tendency toward slightly longer sentences and a slightly more varied vocabulary.
-
-The observed evolution therefore corresponds to moderate enrichment rather than an important structural change.
-
-![image.png](attachment:f7187c57-8fef-4c60-b385-09bd2e20af0a:image.png)
-
-The relationship between swear word ratio and the proportion of "stupid songs" highlights a global behavior of the corpus: artists displaying a higher profanity ratio also have a higher frequency of tracks characterized by minimal or very short text.
-
-This association indicates that lexical density varies significantly from one artist to another. The dispersion of values shows a continuous distribution, without clear distinction or strict clusters, which reflects a diversity of writing practices rather than a separation into defined categories.
+- When the profanity ratio is zero (Rswear≈0), only **5%** of songs are classified as simple.
+- When the ratio exceeds 0.20 (20% of the text composed of swear words), this proportion climbs to **40%**.
 
 ## 5. **Lexical Frequency Analysis via Word Clouds**
 
@@ -182,13 +170,17 @@ In an exploratory approach to identify predominant themes, we calculated term oc
 
 The word cloud of the **"Non-Metal"** corpus reveals a vocabulary mainly anchored in emotional registers and interpersonal relationships. We observe a clear predominance of verbs and common nouns related to emotions and daily life, with central terms such as "love", "baby", "know", "never", or "time".
 
-![non_metal_wordcloud.png](attachment:9deb84ea-832f-4f31-9b1c-09aa0ef98492:non_metal_wordcloud.png)
+![Non-metal wordcloud](outputs/16.png)
 
 Conversely, the visualization of the **"Metal"** corpus exposes a radically darker and more aggressive lexical field. The most frequent words, which appear here massively, belong to the register of violence, death, and conflict. Terms like "blood", "kill", "death", "war", "fire", and "hell" saturate the visual space, thus confirming the thematic singularity of the Metal genre compared to generalist popular music standards.
 
-![image.png](attachment:d6387b46-665d-4ffe-89c2-f6c3b990e077:image.png)
+![Metal wordcloud](outputs/17.png)
 
-## 6. Metalness
+## E. Metalness
+
+### **1. Objective**
+
+By defining _metalness_ (whose principle and formula are greatly inspired by what was done by Lucas Ballore in his medium article, part II), we create a metric allowing us to measure how "metal" a word is: its _metalness_.
 
 ### A. Preprocessing and Filtering
 
@@ -228,7 +220,7 @@ If a word's score is:
 
 **The 20 most metal words according to "metalness"**
 
-![image.png](attachment:36cef1d1-ae7a-416e-8396-ad24e1d8ae3d:image.png)
+![Top 20 metalness words](outputs/18.png)
 
 ## 7. Metallitude
 
@@ -243,15 +235,90 @@ This differential approach penalizes words frequent in Metal but also common els
 
 **The 20 most "metal" words according to our metallitude:**
 
-![image.png](attachment:c4944384-099a-4316-bd53-bd37a4bd061e:image.png)
+![Top 20 metallitude words](outputs/19.png)
 
-# IV (medium 3)
+# IV Sentiment Analysis
+
+This axis explores the affective dimension of the Metal genre by applying natural language processing (NLP) methods. The objective is to quantify the emotional polarity of lyrics and observe how these emotions evolve at the scale of a career or an album.
+
+## A. Lexical Happiness Study via the Hedonometer
+
+The measurement of the intrinsic emotional charge of Metal vocabulary relies on a comparative approach using the **Hedonometer**. This is a reference index in psycholinguistics where each word has been evaluated by humans on a "happiness" scale ranging from 1 (sadness/danger) to 9 (joy/safety).
+
+### 1. Calculation Protocol per Song
+
+Unlike VADER which analyzes syntax, the calculation of happiness via the Hedonometer in our project is a purely lexical measure. For each song, the score is calculated according to the following steps:
+
+1. **Extraction and Cleaning:** Lyrics are decomposed into individual words.
+2. **Matching:** For each word in the song, the script checks if there is a match in the Hedonometer dictionary.
+3. **Lexical Average:** The happiness score of the song H_song is the average of the happiness scores of all identified words:
+
+![Happiness calculation formula](outputs/20.png)
+
+### 2. Analysis of Lexical Extremes
+
+The application of this index to our corpus allows us to identify two opposing linguistic poles:
+
+- **The Positivity Pole:**
+  Terms related to laughter (_laughter_, _happiness_) or affection (_love_, _joy_) dominate with scores above **8.0**. Although present, they are a minority in pure Metal lexicon.
+- **The Negative Saturation Pole:**
+  Vocabulary identified as "very Metal" collapses into the lowest scores of the dataset: _suicide_ (1.30), _murder_ (1.48), _death_ (1.54), and _torture_ (1.58).
+
+![Happiness positive pole](outputs/21.png)
+
+![Happiness negative pole](outputs/22.png)
+
+## B. Methodology and Dynamic Analysis (VADER)
+
+To evaluate songs contextually, we use the **VADER** algorithm (_Valence Aware Dictionary and sEntiment Reasoner_).
+
+### 1. Detailed Algorithm Functioning
+
+The code transforms lyrics into a final score via three nested levels of analysis:
+
+- **Word Level (The Lexicon):** VADER consults a dictionary of 7,500 terms rated from -4 to +4. It adjusts the score according to emphasis: a word in **CAPITALS** or followed by **exclamation marks** sees its valence increased.
+- **Sentence Level (The Syntax):** The algorithm calculates a _Compound_ score by integrating "booster words" (e.g., _"extremely dark"_) that intensify sentiment and inversions (e.g., _"not dead"_) that flip polarity.
+- **Song Level (Aggregation):** Our script performs an arithmetic average of all sentence scores of the song:
+
+  S_song = (1/n) \* Σ(i=1 to n) Compound(s_i)
+
+### 2. Histogram Analysis and Saturation Theory
+
+The histogram reveals a massive concentration of songs at the extreme left (**-1.0**). A technical analysis allows us to interpret this result:
+
+- **Exclusion of Punctuation Error:** One might assume that a lack of punctuation would prevent sentence segmentation and skew the calculation. However, our script's `tokenize.sent_tokenize` works on raw text preserving original structures. Moreover, even without punctuation, VADER treats the block as a unique sentence and applies its valence rules reliably.
+- **Lexical Saturation Theory:** The real reason for this peak is mathematical. VADER uses a normalization that saturates very quickly toward extremes. In Metal, the density of words with strong negative valence identified in the Hedonometer study (_Death, Kill, Pain_) is so high within a single track that the final score is irremediably pushed toward **-1.0** without any positive words coming to counterbalance.
+
+![VADER histogram](outputs/23.png)
+
+## C. Case Studies and Correlations
+
+### 1. Emotional Topology (Top Songs)
+
+![Emotional topology](outputs/24.png)
+
+Negative songs (_Going to Die_) reach **-0.9999**, while positive titles (_Do You Love Me?_) saturate at **+0.9999**, validating the pipeline's sensitivity to lexical extremes.
+
+### 2. Opeth's Emotional Dynamics
+
+![Opeth emotional dynamics](outputs/25.png)
+
+The arc shows a fall toward melancholy: founding albums (_Orchid_) are more "positive" (0.3) than recent productions like _Pale Communion_ (-0.7).
+Opeth's _Sentiment Path_ illustrates their stylistic versatility: while their _Metalness_ remains globally high, their emotional charge varies strongly from one album to another.
+
+![Opeth sentiment path](outputs/26.png)
+
+### 3. Metalness vs Sentiment
+
+The scatter plot confirms the inverse correlation: the more the words used are characteristic of the genre (high _Metalness_ score), the more the average sentiment tends toward negativity.
+
+![Metalness vs sentiment](outputs/27.png)
 
 # V Exploratory Approaches
 
-## 1. Clustering of the 50 Bands with the Most Albums According to "Metallitude"
+## A. Clustering of the 50 Bands with the Most Albums According to "Metallitude"
 
-![image.png](attachment:8c9b027a-51af-44c4-b625-328938dec776:image.png)
+![Metallitude clustering](outputs/28.png)
 
 In this section, we calculated the average **metallitude** per band and applied density clustering (OPTICS). Then, we visualized our results by projecting into a 2D space with UMAP.
 
@@ -277,13 +344,13 @@ This approach enables automatic classification without manual annotation, exploi
 
 As illustrated in the annotated figure below, this approach enables relevant automatic classification: clusters naturally polarize between "extreme" genres (Death/Thrash) characterized by high _Metalness_, and "melodic" genres (Power/Heavy) with more moderate scores.
 
-![image.png](attachment:17a7ad49-91f6-4d3f-87cc-8b0a5431325c:image.png)
+![Metallitude clustering labeled](outputs/29.png)
 
 ## 2. Clustering of Albums According to Their Average "Metalness" Score
 
 In an exploratory approach, we attempted to segment albums by performing clustering based on their average **metalness** score.
 
-![image.png](attachment:ba170726-cad4-40d7-9238-628be734fba3:image.png)
+![Albums metalness clustering](outputs/30.png)
 
 To visually interpret this distribution, we projected the results into a two-dimensional space via the UMAP algorithm. Although the graph shows distinct groupings (colored clusters), a critical review conducted with the teaching team highlighted a fundamental methodological inconsistency in this approach.
 
@@ -301,9 +368,9 @@ The space organizes according to a clear horizontal gradient:
 
 In conclusion, the combination of profanity, text complexity, and "metallitude" is sufficient to recreate the fundamental distinction between "melodic" metal and "extreme" metal.
 
-![image.png](attachment:a031c17a-2518-4e54-8a7a-a1c05f4d4ffc:image.png)
+![Metallitude profanity readability clustering](outputs/31.png)
 
-## 4. Clustering of the 50 Artists with the Most Albums According to Metallitude/Happiness
+## D. Clustering of the 50 Artists with the Most Albums According to Metallitude/Happiness
 
 **Definition of Happiness:**
 
@@ -317,7 +384,7 @@ In the context of our study, the "Happiness" of a text is calculated by taking t
 
 By crossing our lexical specificity metric (**Metallitude**) with emotional valence analysis (**Happiness**), clustering reveals an even more marked polarization than previously. The UMAP projection draws a quasi-linear diagonal trajectory suggesting a **strong inverse correlation**: the more a group uses vocabulary specific to metal, the more negative the emotional tone of its texts.
 
-![artist_clusters_optics_Happiness.png](attachment:a7eb1d70-1993-46f5-9c88-b52c063193a4:artist_clusters_optics_Happiness.png)
+![Metallitude happiness clustering](outputs/32.png)
 
 This analysis distinctly separates two worlds:
 
@@ -328,6 +395,91 @@ This graph confirms a structural hypothesis of the genre:
 
 The lexical identity of extreme metal is intrinsically built on negativity and emotional distress, where traditional metal retains a part of lexical positivity.
 
+## **E. Clustering of Artists and Albums with TF-IDF**
+
+### 1. Principle
+
+We also classified artists and albums (scripts `artists_tf_idf.py` and `albums_tf_idf.py`) via the TF-IDF method (already used previously to calculate metallitude), thus without using already computed metrics.
+
+Unlike metallitude, we apply TF-IDF here only on corpora containing lyrics of metal songs (English only), since we want to reveal the subgenres of metal artists/albums.
+
+To do this, after grouping the data by artist or by album, we apply TF-IDF by calculating IDF on the entire metal dataset lyrics and TF on the lyrics of the artists or albums we want to classify. We thus obtain a very large matrix, with artists or albums in rows and text units (words) in columns.
+
+We then apply clustering on the TF-IDF matrix with OPTICS or KMeans:
+
+- **OPTICS:** Density clustering, determines the number of clusters by itself.
+- **KMeans:** Nearest neighbors method, requires fixing the desired number of clusters in advance. To address this limitation, we choose the number of clusters by cross-validation on the silhouette score of the clustering.
+
+Finally, we use UMAP to project the data onto 2 dimensions and thus visualize them.
+
+**Note:** Since clustering occurs on the TF-IDF matrix directly, i.e., before projecting the data into 2D, it is possible that some artists or albums have a label that does not correspond to their neighbors in the UMAP visualization.
+
+### 2. Clustering on Artists
+
+We chose to classify the 100 artists with the most songs in our metal dataset.
+
+- **With OPTICS:**
+
+OPTICS does not give interesting results in this case; it fails to find clusters and thus leaves the vast majority of data unclassified (cluster -1 or noise).
+
+We can obtain several clusters by lowering the `min_samples` parameter to 2 (the minimum number of points to create a cluster), which was initially set to 5, but we then only obtain clusters of 2 to 4 artists, which is not very relevant, and the vast majority of artists remain associated with noise:
+
+![TF-IDF artists OPTICS](outputs/33.png)
+
+![TF-IDF artists OPTICS words](outputs/34.png)
+
+- **With KMeans:**
+
+We perform cross-validation of the number of clusters (the `n_clusters` parameter of the `sklearn` function) over the range of values from 3 to 10, because artists not being separated into distinct groups, including `n_clusters = 2` in the cross-validation would systematically choose 2 clusters, where one of the two clusters encompasses almost all artists.
+
+Silhouette scores with 2 in the cross-validation range:
+
+![KMeans scores 2 clusters](outputs/35.png)
+
+![KMeans 2 clusters words](outputs/36.png)
+
+With almost all artists classified in cluster 0.
+
+Here are 2 examples of what we can obtain by removing 2 from the values tested for the number of clusters.
+
+**===== Execution 1 =====**
+
+![KMeans scores execution 1](outputs/37.png)
+
+![TF-IDF artists KMeans execution 1](outputs/38.png)
+
+![KMeans execution 1 words](outputs/39.png)
+
+**===== Execution 2 =====**
+
+![KMeans scores execution 2](outputs/40.png)
+
+![TF-IDF artists KMeans execution 2](outputs/41.png)
+
+![KMeans execution 2 words](outputs/42.png)
+
+### 3. Clustering on Albums
+
+We chose to take the albums of the 5 artists with the most songs, which gives 128 albums. The artists are: Judas Priest, Alice Cooper, Rage, Motorhead, and Napalm Death.
+
+- **With OPTICS:**
+
+We encounter the same problem with OPTICS as with artist clustering, even though we observe on albums a clearer separation of the data with groups well separated from the mass, but the mass remains associated with noise, as well as some groups of points that are easily identifiable in the visualization.
+
+![TF-IDF albums OPTICS](outputs/43.png)
+
+![TF-IDF albums OPTICS words](outputs/44.png)
+
+- **With KMeans:**
+
+Same cross-validation principle as with artists, but no need to remove 2 from the tested values this time, and we extend the range up to 15:
+
+![TF-IDF albums KMeans](outputs/45.png)
+
+![TF-IDF albums KMeans words](outputs/46.png)
+
+This time, the labels assigned by KMeans correspond more coherently to the 2D visualization.
+
 # VI Conclusion
 
 The **PAO Metal Mining** project validated the contribution of Data Science and Natural Language Processing (NLP) techniques for large-scale musicological analysis. By structuring a complete pipeline, from distributed collection of thousands of titles to multivariate analysis, we were able to objectify the stylistic characteristics of a genre often reduced to stereotypes.
@@ -337,14 +489,6 @@ The **PAO Metal Mining** project validated the contribution of Data Science and 
 Beyond musical results, this project constituted a methodological learning laboratory. The critique of our own visualizations (notably the inappropriate use of UMAP on one-dimensional data) highlighted the importance of adequacy between data nature and projection algorithms.
 
 Conversely, the success of multivariate clustering (Metalness/Readability/Profanity) confirms that a metal band's identity can be predicted with high reliability solely from its texts, without any audio signal analysis.
-
-**Perspectives**
-
-This exploratory work opens the way to more advanced analyses.
-
-The integration of deep language models (LLM) could allow going beyond the "bag of words" approach to analyze semantics and narrative structures of songs.
-
-Similarly, crossing this textual data with audio descriptors (tempo, distortion) would allow drawing an even more exhaustive cartography of the metal universe.
 
 # VI Sources
 

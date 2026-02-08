@@ -12,7 +12,7 @@ The entire work is based on setting up a complete pipeline from text collection 
 
 The first step of the project consisted of building a dataset of metal song lyrics. Two data sources were used: **DarkLyrics** for lyrics and **Metal Archives** for genre metadata.
 
-**1. Lyrics Scraping via DarkLyrics**
+## **A. Lyrics Scraping via DarkLyrics**
 
 The main scraping relies on the Python library `metalparser`, which allows automated querying of the DarkLyrics website.
 
@@ -33,19 +33,19 @@ For each artist, the script retrieves:
 
 Individual progress files (`progress1.json`, `progress2.json`, etc.) are then merged via `merge_progress_files.py` to create the final `dataset.json` file.
 
-**2. Genre Scraping via Metal Archives**
+## **B. Genre Scraping via Metal Archives**
 
 To enrich the dataset with musical genres for each band, a second script (`metallum_webscraper.py`) queries the **Metal Archives** (Encyclopaedia Metallum) website.
 
 This scraping uses **Selenium** with an automated Chrome browser to bypass the site's anti-bot protections:
 
 - The script applies **stealth** techniques (masking `webdriver` properties, custom user-agent, etc.).
-- For each band, it accesses its dedicated page and extracts the genre from the `#band_stats` section.
+- For each band, it accesses its dedicated page and extracts the genre from the `band_stats` section.
 - A configurable delay between requests allows respecting server limits.
 
 Retrieved genres are saved in `data/bands_genres.json`, then cleaned via `clean_genres.py` to produce `bands_genres_cleaned.json`.
 
-**3. Data Merging and Enrichment**
+## **C. Data Merging and Enrichment**
 
 Progress files are merged via `merge_progress_files.py`, which also adds **automatic language detection** for each song (via the `langdetect` library).
 
@@ -62,19 +62,19 @@ This file forms the basis for all analysis steps.
 
 In order to understand the dataset obtained from our scraping, we performed several visualizations. This allowed us to discover a problem that would have skewed our future experiments: songs with "INSTRUMENTAL" as their only lyric content (songs without lyrics where the scraping retrieved only this single word) were being detected as Romanian songs by langdetect (which uses a Bayesian estimator). To work around this type of problem, we added a threshold of 5 words: below this threshold, a song is considered to have no lyrics.
 
-![Dataset structure](outputs/1.png)
+![Distribution of songs with vs without lyrics](outputs/1.png)
 
 ![Publication types](outputs/2.png)
 
-![Artist distribution](outputs/3.png)
+![Top 10 bands by song count](outputs/3.png)
 
 ![Album distribution](outputs/4.png)
 
 ![Temporal evolution](outputs/5.png)
 
-![Language distribution](outputs/6.png)
+![Language distribution pie chart](outputs/6.png)
 
-![Language pie chart](outputs/7.png)
+![Language distribution table](outputs/7.png)
 
 The language distribution is consistent with the Metal world; the dataset does not appear to be biased at first glance.
 
@@ -84,7 +84,7 @@ This axis focuses on the structural and semantic analysis of lyrics to evaluate 
 
 ## A. Simplified Data Preprocessing
 
-Before any measurement, standardized cleaning is applied to the lyrics via the `_prep_text` function from our script. This process consists of three elementary actions:
+Before any measurement, standardized cleaning is applied to the lyrics via the `_prep_text` function from our script `analyzer2.py`. This process consists of three elementary actions:
 
 1. **Lowercase:** Case uniformization.
 2. **Cleaning:** Replacement of line breaks by spaces.
@@ -126,7 +126,7 @@ _Rankings of the 10 artists with the highest profanity rate and the highest read
 
 The analysis of the above tables highlights a clear dichotomy within the genre:
 
-- **Lexical Complexity:** Some groups develop texts of great richness. The group _Malignancy_ reaches an average score of **18.6**, indicating a superior university-level language. Groups like _Botanist_ (17.1) or _Carcass_ (12.7) confirm the existence of a "learned Metal" using technical or dense narrative vocabulary.
+- **Lexical Complexity:** Some groups develop texts of great richness. The group _Malignancy_ reaches an average score of **18.6**, indicating a superior university-level language.
 - **Profanity Density:** On the opposite end, groups at the top of the profanity ranking, like _Meat Shits_ (11.2% swear words) or _Barbatos_ (7.4%), dedicate a significant part of their lexicon to swear words, which mechanically reduces the space available for complex vocabulary.
 
 ### 2. Temporal Evolution
@@ -164,7 +164,7 @@ The result is clear: the correlation is quasi-linear and positive.
 - When the profanity ratio is zero (Rswear≈0), only **5%** of songs are classified as simple.
 - When the ratio exceeds 0.20 (20% of the text composed of swear words), this proportion climbs to **40%**.
 
-## 5. **Lexical Frequency Analysis via Word Clouds**
+## D. **Lexical Frequency Analysis via Word Clouds**
 
 In an exploratory approach to identify predominant themes, we calculated term occurrences in each corpus to generate distinct word clouds. This visualization highlights a striking semantic dichotomy between the two genres.
 
@@ -180,16 +180,16 @@ Conversely, the visualization of the **"Metal"** corpus exposes a radically dark
 
 ### **1. Objective**
 
-By defining _metalness_ (whose principle and formula are greatly inspired by what was done by Lucas Ballore in his medium article, part II), we create a metric allowing us to measure how "metal" a word is: its _metalness_.
+By defining _metalness_ (script `process_wordcloud_metalness.py`, whose principle and formula are greatly inspired by what was done by Lucas Ballore in his medium article, part II), we create a metric allowing us to measure how "metal" a word is: its _metalness_.
 
-### A. Preprocessing and Filtering
+### 2. Preprocessing and Filtering
 
 Before calculation, two filters are applied to reduce statistical noise:
 
 - **Frequency threshold:** Only words appearing at least **5 times** in each corpus are kept (`v >= 5`). This eliminates words that are too rare and would skew the ratios.
 - **Intersection and Length:** Calculation is performed only on words present in **both** corpora (`intersection`) and having more than 2 letters, to exclude linking words that are too short and non-significant.
 
-### B. Mathematical Formulation
+### 3. Mathematical Formulation
 
 The score is calculated in two steps for each word w: calculation of the logarithmic coefficient, then its normalization.
 
@@ -204,13 +204,13 @@ $$
 - If the word is more frequent in Non-Metal, coeff<0.
 
 **b. "Metalness" (Sigmoid Transformation)**
-To obtain a readable and bounded score, a **sigmoid** function is applied to the coefficient. This transforms the value (which ranges from −∞ to +∞) into a probability between
+To obtain a readable and bounded score, a **sigmoid** function is applied to the coefficient. This transforms the value (which ranges from −∞ to +∞) into a probability between 0 and 1.
 
 $$
 Metalness(w) = \frac{1}{1 + e^{-coeff(w)}}
 $$
 
-### C. Score Interpretation
+### 4. Score Interpretation
 
 If a word's score is:
 
@@ -222,9 +222,11 @@ If a word's score is:
 
 ![Top 20 metalness words](outputs/18.png)
 
-## 7. Metallitude
+## F. Metallitude
 
-After the initial results of our previously implemented metalness, we developed a novel metric called Metallitude. Unlike a standard TF-IDF approach applied to a single corpus, our method relies on cross-weighting between the two datasets.
+After the initial results of our previously implemented metalness, we developed a novel metric called Metallitude, implemented in the script `tf_idf.py`.
+
+Unlike a standard TF-IDF approach applied to a single corpus, our method relies on cross-weighting between the two datasets.
 
 The score is calculated by the product of two distinct components:
 
@@ -237,7 +239,7 @@ This differential approach penalizes words frequent in Metal but also common els
 
 ![Top 20 metallitude words](outputs/19.png)
 
-# IV Sentiment Analysis
+# III Sentiment Analysis and Emotional Dynamics
 
 This axis explores the affective dimension of the Metal genre by applying natural language processing (NLP) methods. The objective is to quantify the emotional polarity of lyrics and observe how these emotions evolve at the scale of a career or an album.
 
@@ -278,7 +280,7 @@ The code transforms lyrics into a final score via three nested levels of analysi
 
 - **Word Level (The Lexicon):** VADER consults a dictionary of 7,500 terms rated from -4 to +4. It adjusts the score according to emphasis: a word in **CAPITALS** or followed by **exclamation marks** sees its valence increased.
 - **Sentence Level (The Syntax):** The algorithm calculates a _Compound_ score by integrating "booster words" (e.g., _"extremely dark"_) that intensify sentiment and inversions (e.g., _"not dead"_) that flip polarity.
-- **Song Level (Aggregation):** Our script performs an arithmetic average of all sentence scores of the song:
+- **Song Level (Aggregation):** Our script `analyzer_3_suite.py` performs an arithmetic average of all sentence scores of the song:
 
   S_song = (1/n) \* Σ(i=1 to n) Compound(s_i)
 
@@ -314,7 +316,7 @@ The scatter plot confirms the inverse correlation: the more the words used are c
 
 ![Metalness vs sentiment](outputs/27.png)
 
-# V Exploratory Approaches
+# IV Exploratory Approaches
 
 ## A. Clustering of the 50 Bands with the Most Albums According to "Metallitude"
 
@@ -346,7 +348,7 @@ As illustrated in the annotated figure below, this approach enables relevant aut
 
 ![Metallitude clustering labeled](outputs/29.png)
 
-## 2. Clustering of Albums According to Their Average "Metalness" Score
+## B. Clustering of Albums According to Their Average "Metalness" Score
 
 In an exploratory approach, we attempted to segment albums by performing clustering based on their average **metalness** score.
 
@@ -356,9 +358,9 @@ To visually interpret this distribution, we projected the results into a two-dim
 
 Indeed, we attempted to project intrinsically one-dimensional data (the scalar metalness score) into a 2D space. This operation is logically redundant: clustering on a single variable amounts to defining thresholds on a line, and using UMAP here artificially complicates the information without real analytical gain. This step was therefore not retained for the final analysis, but it constituted an important learning point on the necessity of using multivariate input data to justify the use of dimension reduction algorithms.
 
-## 3. Clustering of Top 50 Artists According to Metallitude/Profanity/Readability
+## C. Clustering of Top 50 Artists According to Metallitude/Profanity/Readability
 
-In this section, we applied the OPTICS algorithm to the 50 bands with the most albums, using a three-dimensional vector space composed of **Metalness**, **Readability**, and **Swear Word Ratio**. The UMAP projection of this clustering reveals a striking semantic polarization that validates the relevance of our metrics.
+In this section, via the script `clustering_MRSW.py`, we applied the OPTICS algorithm to the 50 bands with the most albums, using a three-dimensional vector space composed of **Metalness**, **Readability**, and **Swear Word Ratio**. The UMAP projection of this clustering reveals a striking semantic polarization that validates the relevance of our metrics.
 
 The space organizes according to a clear horizontal gradient:
 
@@ -426,7 +428,7 @@ We can obtain several clusters by lowering the `min_samples` parameter to 2 (the
 
 ![TF-IDF artists OPTICS](outputs/33.png)
 
-![TF-IDF artists OPTICS words](outputs/34.png)
+![OPTICS artists thematic words](outputs/41.png)
 
 - **With KMeans:**
 
@@ -434,9 +436,9 @@ We perform cross-validation of the number of clusters (the `n_clusters` paramete
 
 Silhouette scores with 2 in the cross-validation range:
 
-![KMeans scores 2 clusters](outputs/35.png)
+![KMeans silhouette scores with 2 clusters included](outputs/34.png)
 
-![KMeans 2 clusters words](outputs/36.png)
+![KMeans 2 clusters thematic words](outputs/35.png)
 
 With almost all artists classified in cluster 0.
 
@@ -444,19 +446,22 @@ Here are 2 examples of what we can obtain by removing 2 from the values tested f
 
 **===== Execution 1 =====**
 
-![KMeans scores execution 1](outputs/37.png)
+![KMeans scores execution 1](outputs/36.png)
 
-![TF-IDF artists KMeans execution 1](outputs/38.png)
+![TF-IDF artists KMeans execution 1](outputs/37.png)
 
-![KMeans execution 1 words](outputs/39.png)
+![KMeans execution 1 thematic words](outputs/38.png)
+
+
 
 **===== Execution 2 =====**
 
-![KMeans scores execution 2](outputs/40.png)
+![KMeans silhouette scores execution 2](outputs/39.png)
 
-![TF-IDF artists KMeans execution 2](outputs/41.png)
+![TF-IDF artists KMeans execution 2](outputs/40.png)
 
-![KMeans execution 2 words](outputs/42.png)
+![KMeans execution 2 thematic words](outputs/42.png)
+
 
 ### 3. Clustering on Albums
 
@@ -480,6 +485,14 @@ Same cross-validation principle as with artists, but no need to remove 2 from th
 
 This time, the labels assigned by KMeans correspond more coherently to the 2D visualization.
 
+### 4. Future Directions
+
+Several ideas for further exploration come to mind for TF-IDF clustering, notably establishing a link with the genres assigned to artists/albums from the _Encyclopaedia Metallum_, whether by overlaying the UMAP visualization of the TF-IDF matrix with the encyclopedia's genres or by comparing the KMeans clustering labels — which seem more relevant (extracting the most information in any case) — to those of the encyclopedia.
+
+Another avenue could be testing with specifically chosen artists or albums, for example the albums of a single artist, which might allow observing a subgenre shift over the course of a career.
+
+A final point concerns the presence of rather strange thematic words in the clusters such as "love" or "baby" which are not supposed to be particularly metal and whose cause of appearance has not been determined.
+
 # VI Conclusion
 
 The **PAO Metal Mining** project validated the contribution of Data Science and Natural Language Processing (NLP) techniques for large-scale musicological analysis. By structuring a complete pipeline, from distributed collection of thousands of titles to multivariate analysis, we were able to objectify the stylistic characteristics of a genre often reduced to stereotypes.
@@ -489,6 +502,14 @@ The **PAO Metal Mining** project validated the contribution of Data Science and 
 Beyond musical results, this project constituted a methodological learning laboratory. The critique of our own visualizations (notably the inappropriate use of UMAP on one-dimensional data) highlighted the importance of adequacy between data nature and projection algorithms.
 
 Conversely, the success of multivariate clustering (Metalness/Readability/Profanity) confirms that a metal band's identity can be predicted with high reliability solely from its texts, without any audio signal analysis.
+
+**Perspectives**
+
+This exploratory work paves the way for more advanced analyses.
+
+The integration of deep language models (LLMs) could allow going beyond the "bag of words" approach to analyze the semantics and narrative structures of songs.
+
+Similarly, crossing these textual data with audio descriptors (tempo, distortion) would allow drawing an even more exhaustive cartography of the metal universe.
 
 # VI Sources
 

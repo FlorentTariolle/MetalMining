@@ -6,3 +6,4 @@ cache/lyrics_with_sentiment.csv
 output_data/
 output_pics/
 *.pyc
+.claude/settings.local.json

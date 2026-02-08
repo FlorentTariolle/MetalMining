@@ -69,6 +69,12 @@ Main analysis scripts:
 - **`metalness_loader.py`** : Loading precomputed metalness data
 - **`extract_top_bands.py`** : Utility for extracting top bands from dataset
 
+### `resources/`
+
+- **`swear_words_eng.txt`** : English swear words dictionary for profanity ratio
+- **`stopwords_eng.txt`** : English stopwords list for text filtering
+- **`vader_lexicon.txt`** : VADER sentiment lexicon
+
 ### Data Files
 
 - **`data/dataset.json`** : Main dataset with lyrics, metadata, and detected language
@@ -121,7 +127,7 @@ Most scripts support command-line arguments for customizing input paths and para
 
 ## Detailed Documentation
 
-For complete details on methodology, results, visualizations, and conclusions, see **[DOCUMENTATION.md](DOCUMENTATION.md)**.
+For complete details on methodology, results, visualizations, and conclusions, see **[REPORT.md](REPORT.md)**.
 
 ## Credits
 
@@ -129,7 +135,7 @@ Rayen, Mathis, Nizar, and Florent
 
 ## Sources
 
-- [When heavy metal meets data science](https://blog.lucaballore.com/when-heavy-metal-meets-data-science-2e840897922e) (Episodes I, II, III)
+- [When Heavy Metal Meets Data Science](https://blog.lucaballore.com/)
 - [GitHub - deep-metal](https://github.com/lballore/deep-metal)
 - [The Hedonometer](https://hedonometer.org/words/labMT-en-v2/)
 - [Encyclopaedia Metallum](https://www.metal-archives.com/)

@@ -513,14 +513,10 @@ Similarly, crossing these textual data with audio descriptors (tempo, distortion
 
 # VI Sources
 
-[When heavy metal meets data science | Episode I](https://blog.lucaballore.com/when-heavy-metal-meets-data-science-2e840897922e)
+[When Heavy Metal Meets Data Science](https://blog.lucaballore.com/)
 
-[When heavy metal meets data science | Episode II](https://blog.lucaballore.com/when-heavy-metal-meets-data-science-3fc32e9096fa)
-
-[When heavy metal meets data science | Episode III](https://blog.lucaballore.com/when-heavy-metal-meets-data-science-episode-iii-9f6e4772847e)
-
-[GitHub - lballore/deep-metal: NLP analysis on heavy metal lyrics and NN-based lyrics generator](https://github.com/lballore/deep-metal)
+[GitHub - deep-metal](https://github.com/lballore/deep-metal)
 
 [The Hedonometer](https://hedonometer.org/words/labMT-en-v2/)
 
-[Home - Encyclopaedia Metallum: The Metal Archives](https://www.metal-archives.com/)
+[Encyclopaedia Metallum](https://www.metal-archives.com/)

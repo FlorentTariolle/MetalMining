@@ -2,7 +2,7 @@
 
 Large-scale analysis of heavy metal lyrics using Data Science and Natural Language Processing (NLP) techniques.
 
-**Note:** "PAO" is a French acronym for "Projet d'Approfondissement et d'Ouverture" (Deepening and Opening Project), which is a school project at INSA Rouen.
+**Note:** "PAO" is a French acronym for "Projet d'Approfondissement et d'Ouverture" (Deepening and Opening Project), which is a school project at [INSA Rouen](https://www.insa-rouen.fr/).
 
 ## Objective
 

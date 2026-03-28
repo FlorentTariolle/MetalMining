@@ -23,7 +23,7 @@ SOFTWARE.
 DATASET DISCLAIMER:
 The MIT License applies strictly to the source code contained in this repository.
 It does NOT apply to the datasets, lyrics, or metadata contained within the
-`data/` directory (including but not limited to `dataset.json` and `bands_genres_cleaned.json`).
+`data/` directory (including but not limited to `dataset.json` and `bands_genres.json`).
 All scraped lyrics and metadata remain the intellectual property of their respective
 copyright holders, originally sourced from DarkLyrics and Encyclopaedia Metallum.
 These data files are utilized within this repository strictly for academic research

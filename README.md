@@ -1,8 +1,13 @@
 # PAO Metal Mining
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+
 Large-scale analysis of heavy metal lyrics using Data Science and Natural Language Processing (NLP) techniques.
 
-**Note:** "PAO" is a French acronym for "Projet d'Approfondissement et d'Ouverture" (Deepening and Opening Project), which is a school project at [INSA Rouen](https://www.insa-rouen.fr/).
+**Note:** "PAO" is a French acronym for "Projet d'Approfondissement et d'Ouverture" (Deepening and Opening Project), which is a school project at [INSA Rouen Normandy](https://www.insa-rouen.fr/).
 
 ## Objective
 
